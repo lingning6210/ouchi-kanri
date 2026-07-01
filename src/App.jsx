@@ -8,26 +8,27 @@ import {
 const uid = () => Math.random().toString(36).slice(2, 9);
 const TODAY = todayD();
 const TODAY_STR = fmtD(TODAY);
-const LS = "ouchi_kanri_v1";
+const LS = "ouchi_kanri_v2";
 
-const COLORS = ["#7cb342", "#3b7ddd", "#e5534b", "#f0932b", "#8e5cd9", "#16a3a3", "#d81b8c", "#6d6d72"];
+// warm, muted palette that reads well as soft tinted calendar chips
+const COLORS = ["#c56b4b", "#d99a3f", "#7fa06a", "#6e86a6", "#9d6a8e", "#4f9d94", "#b98a5e", "#8a8078"];
 const EMOJIS = ["👩", "👨", "👧", "🧒", "👴", "👵", "🧑", "🙋", "😊", "😎", "🐱", "🐶", "🐼", "🌸", "⭐", "🦊"];
 
 // ─── seed ───────────────────────────────────────────────
 const SEED = {
   currentUser: null,
   members: [
-    { id: "m1", name: "お母さん", emoji: "👩", color: "#e5534b", reward: { threshold: 3, message: "お菓子買ってきて🫶" } },
-    { id: "m2", name: "お父さん", emoji: "👨", color: "#3b7ddd", reward: { threshold: 3, message: "コーヒー奢って☕" } },
-    { id: "m3", name: "長女", emoji: "👧", color: "#8e5cd9", reward: { threshold: 5, message: "ジュース買って🧃" } },
-    { id: "m4", name: "長男", emoji: "🧒", color: "#f0932b", reward: null },
+    { id: "m1", name: "お母さん", emoji: "👩", color: "#c56b4b", reward: { threshold: 3, message: "お菓子買ってきて🫶" } },
+    { id: "m2", name: "お父さん", emoji: "👨", color: "#6e86a6", reward: { threshold: 3, message: "コーヒー奢って☕" } },
+    { id: "m3", name: "長女", emoji: "👧", color: "#9d6a8e", reward: { threshold: 5, message: "ジュース買って🧃" } },
+    { id: "m4", name: "長男", emoji: "🧒", color: "#d99a3f", reward: null },
   ],
   todos: [
-    { id: uid(), name: "お風呂掃除", ownerId: "m1", color: "#e5534b", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "weekly", interval: 1, weekdays: [1, 4] }, supply: "バスクリーナー", completionLog: [] },
-    { id: uid(), name: "ゴミ捨て", ownerId: "m2", color: "#3b7ddd", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "weekly", interval: 1, weekdays: [2, 5] }, supply: "ゴミ袋", completionLog: [] },
-    { id: uid(), name: "トイレ掃除", ownerId: "m1", color: "#e5534b", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 3)), repeat: { freq: "monthly", interval: 1, mode: "nth", nth: 1, weekday: 5, date: 3 }, supply: "トイレクリーナー", completionLog: [] },
-    { id: uid(), name: "シーツ交換", ownerId: "m3", color: "#8e5cd9", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "monthly", interval: 1, mode: "date", date: 1, nth: 0, weekday: 0 }, supply: "", completionLog: [] },
-    { id: uid(), name: "掃除機かけ", ownerId: "m4", color: "#f0932b", start: TODAY_STR, repeat: { freq: "daily", interval: 2 }, supply: "", completionLog: [] },
+    { id: uid(), name: "お風呂掃除", ownerId: "m1", color: "#c56b4b", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "weekly", interval: 1, weekdays: [1, 4] }, supply: "バスクリーナー", completionLog: [] },
+    { id: uid(), name: "ゴミ捨て", ownerId: "m2", color: "#6e86a6", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "weekly", interval: 1, weekdays: [2, 5] }, supply: "ゴミ袋", completionLog: [] },
+    { id: uid(), name: "トイレ掃除", ownerId: "m1", color: "#c56b4b", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 3)), repeat: { freq: "monthly", interval: 1, mode: "nth", nth: 1, weekday: 5, date: 3 }, supply: "トイレクリーナー", completionLog: [] },
+    { id: uid(), name: "シーツ交換", ownerId: "m3", color: "#9d6a8e", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "monthly", interval: 1, mode: "date", date: 1, nth: 0, weekday: 0 }, supply: "", completionLog: [] },
+    { id: uid(), name: "掃除機かけ", ownerId: "m4", color: "#d99a3f", start: TODAY_STR, repeat: { freq: "daily", interval: 2 }, supply: "", completionLog: [] },
   ],
   shopping: [],
   notifyTime: "20:00",
@@ -141,7 +142,7 @@ export default function App() {
     return (
       <div className="phone">
         <div className="login">
-          <div className="logo">🐼</div>
+          <div className="logo">🏠</div>
           <h1>おうち管理</h1>
           <p>今日は誰として使いますか？</p>
           <div className="login-grid">
@@ -283,15 +284,13 @@ function CalendarView({ calMonth, setCalMonth, todos, onDay, isDone }) {
   return (
     <>
       <div className="pheader cal-header">
-        <div className="clouds">☁️　　☁️　　　☁️　　☁️　　　☁️</div>
         <div className="ym">
-          <div>
-            <div className="yr">{y}</div>
-            <div className="mo">{m + 1}月</div>
+          <span className="yr">{y}</span>
+          <span className="mo">{m + 1}月</span>
+          <div className="nav-group">
+            <button className="navbtn" onClick={() => setCalMonth((p) => { const d = new Date(p.y, p.m - 1); return { y: d.getFullYear(), m: d.getMonth() }; })}>‹</button>
+            <button className="navbtn" onClick={() => setCalMonth((p) => { const d = new Date(p.y, p.m + 1); return { y: d.getFullYear(), m: d.getMonth() }; })}>›</button>
           </div>
-          <div className="pandas-row">🐼🎋🐼</div>
-          <button className="navbtn" onClick={() => setCalMonth((p) => { const d = new Date(p.y, p.m - 1); return { y: d.getFullYear(), m: d.getMonth() }; })}>‹</button>
-          <button className="navbtn" onClick={() => setCalMonth((p) => { const d = new Date(p.y, p.m + 1); return { y: d.getFullYear(), m: d.getMonth() }; })}>›</button>
         </div>
       </div>
       <div className="cal-dow">
@@ -310,7 +309,7 @@ function CalendarView({ calMonth, setCalMonth, todos, onDay, isDone }) {
                 onClick={() => onDay(ds)}>
                 <div className="dn">{d.getDate()}</div>
                 {evs.slice(0, 3).map((e) => (
-                  <div key={e.id} className={`cal-ev${e.done ? " done" : ""}`} style={{ background: e.color }}>{e.name}</div>
+                  <div key={e.id} className={`cal-ev${e.done ? " done" : ""}`} style={{ background: e.color + "22", color: e.color }}>{e.name}</div>
                 ))}
                 {evs.length > 3 && <div className="cal-more">+{evs.length - 3}</div>}
               </div>
@@ -405,11 +404,10 @@ function TodoView({ todos, members, currentUser, isDone, onComplete, onEdit }) {
   return (
     <>
       <div className="pheader">
-        <div className="clouds">☁️　　☁️　　　☁️　　☁️</div>
         <div className="pheader-top">
           <span className="pheader-spacer" />
           <span className="pheader-title">今日のやること</span>
-          <span className="pheader-pandas">🐼</span>
+          <span className="pheader-spacer" />
         </div>
       </div>
       <div className="body">
@@ -436,11 +434,10 @@ function ShopView({ shopping, setShopping }) {
   return (
     <>
       <div className="pheader">
-        <div className="clouds">☁️　　☁️　　　☁️　　☁️</div>
         <div className="pheader-top">
           <span className="pheader-spacer" />
           <span className="pheader-title">🛒 買い物リスト</span>
-          <span className="pheader-pandas">🐼</span>
+          <span className="pheader-spacer" />
         </div>
       </div>
       <div className="body">
@@ -490,11 +487,10 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
   return (
     <>
       <div className="pheader">
-        <div className="clouds">☁️　　☁️　　　☁️　　☁️</div>
         <div className="pheader-top">
           <span className="pheader-spacer" />
           <span className="pheader-title">その他</span>
-          <span className="pheader-pandas">🐼</span>
+          <span className="pheader-spacer" />
         </div>
       </div>
       <div className="body">
@@ -547,11 +543,10 @@ function TaskEditor({ tf, setTf, members, onSave, onClose, onDelete, onOpenRepea
   return (
     <div className="screen">
       <div className="pheader">
-        <div className="clouds">☁️　　☁️　　　☁️</div>
         <div className="pheader-top">
           <button className="pheader-back" onClick={onClose}>✕</button>
           <span className="pheader-title">{tf.id ? "タスクを編集" : "タスクを追加"}</span>
-          <span className="pheader-pandas">🐼</span>
+          <span className="pheader-spacer" />
         </div>
       </div>
       <div className="body">
@@ -626,11 +621,10 @@ function RepeatEditor({ start, repeat, onChange, onBack }) {
   return (
     <div className="screen">
       <div className="pheader">
-        <div className="clouds">☁️　　☁️　　　☁️　　☁️</div>
         <div className="pheader-top">
           <button className="pheader-back" onClick={onBack}>‹</button>
           <span className="pheader-title">繰り返し</span>
-          <span className="pheader-pandas">🐼</span>
+          <span className="pheader-spacer" />
         </div>
       </div>
       <div className="body">
@@ -714,11 +708,10 @@ function MemberEditor({ mf, setMf, onSave, onClose }) {
   return (
     <div className="screen">
       <div className="pheader">
-        <div className="clouds">☁️　　☁️　　　☁️</div>
         <div className="pheader-top">
           <button className="pheader-back" onClick={onClose}>✕</button>
           <span className="pheader-title">{mf.id ? "メンバーを編集" : "メンバーを追加"}</span>
-          <span className="pheader-pandas">🐼</span>
+          <span className="pheader-spacer" />
         </div>
       </div>
       <div className="body">
