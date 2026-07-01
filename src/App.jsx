@@ -9,29 +9,18 @@ import { supabase, cloudLoad, cloudSave, makeHouseholdCode } from "./cloud.js";
 const uid = () => Math.random().toString(36).slice(2, 9);
 const TODAY = todayD();
 const TODAY_STR = fmtD(TODAY);
-const LS = "ouchi_kanri_v2";
+const LS = "ouchi_kanri_v3";
 const HH = "ouchi_household_code"; // shared-household code (opt-in cloud sync)
 
 // warm, muted palette that reads well as soft tinted calendar chips
 const COLORS = ["#c56b4b", "#d99a3f", "#7fa06a", "#6e86a6", "#9d6a8e", "#4f9d94", "#b98a5e", "#8a8078"];
 const EMOJIS = ["👩", "👨", "👧", "🧒", "👴", "👵", "🧑", "🙋", "😊", "😎", "🐱", "🐶", "🐼", "🌸", "⭐", "🦊"];
 
-// ─── seed ───────────────────────────────────────────────
+// ─── initial (empty) state — no preset family; the user adds their own ───
 const SEED = {
   currentUser: null,
-  members: [
-    { id: "m1", name: "お母さん", emoji: "👩", color: "#c56b4b", reward: { threshold: 3, message: "お菓子買ってきて🫶" } },
-    { id: "m2", name: "お父さん", emoji: "👨", color: "#6e86a6", reward: { threshold: 3, message: "コーヒー奢って☕" } },
-    { id: "m3", name: "長女", emoji: "👧", color: "#9d6a8e", reward: { threshold: 5, message: "ジュース買って🧃" } },
-    { id: "m4", name: "長男", emoji: "🧒", color: "#d99a3f", reward: null },
-  ],
-  todos: [
-    { id: uid(), name: "お風呂掃除", ownerId: "m1", color: "#c56b4b", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "weekly", interval: 1, weekdays: [1, 4] }, supply: "バスクリーナー", completionLog: [] },
-    { id: uid(), name: "ゴミ捨て", ownerId: "m2", color: "#6e86a6", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "weekly", interval: 1, weekdays: [2, 5] }, supply: "ゴミ袋", completionLog: [] },
-    { id: uid(), name: "トイレ掃除", ownerId: "m1", color: "#c56b4b", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 3)), repeat: { freq: "monthly", interval: 1, mode: "nth", nth: 1, weekday: 5, date: 3 }, supply: "トイレクリーナー", completionLog: [] },
-    { id: uid(), name: "シーツ交換", ownerId: "m3", color: "#9d6a8e", start: fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)), repeat: { freq: "monthly", interval: 1, mode: "date", date: 1, nth: 0, weekday: 0 }, supply: "", completionLog: [] },
-    { id: uid(), name: "掃除機かけ", ownerId: "m4", color: "#d99a3f", start: TODAY_STR, repeat: { freq: "daily", interval: 2 }, supply: "", completionLog: [] },
-  ],
+  members: [],
+  todos: [],
   shopping: [],
   notifyTime: "20:00",
 };
@@ -233,7 +222,11 @@ export default function App() {
         <div className="login">
           <div className="logo">🏠</div>
           <h1>おうち管理</h1>
-          <p>今日は誰として使いますか？</p>
+          {members.length === 0 ? (
+            <p>ようこそ！<br />まずは家族を追加しましょう</p>
+          ) : (
+            <p>今日は誰として使いますか？</p>
+          )}
           <div className="login-grid">
             {members.map((m) => (
               <button key={m.id} className="login-card" onClick={() => setCurrentUser(m.id)}>
@@ -242,7 +235,9 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button className="link-btn" onClick={() => setMemberForm({ name: "", emoji: "😊", color: COLORS[0], rThresh: "3", rMsg: "" })}>＋ メンバーを追加</button>
+          <button className="link-btn" onClick={() => setMemberForm({ name: "", emoji: "😊", color: COLORS[0], rThresh: "3", rMsg: "" })}>
+            ＋ 家族を追加
+          </button>
         </div>
         {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} />}
       </div>
