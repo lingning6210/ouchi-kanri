@@ -1,14 +1,16 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import "./styles.css";
 import {
   DAYS_JP, parseD, fmtD, todayD, occursOn, repeatSummary, repeatShort,
   nthOfMonth, getNthWeekdayInMonth,
 } from "./recurrence.js";
+import { supabase, cloudLoad, cloudSave, makeHouseholdCode } from "./cloud.js";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const TODAY = todayD();
 const TODAY_STR = fmtD(TODAY);
 const LS = "ouchi_kanri_v2";
+const HH = "ouchi_household_code"; // shared-household code (opt-in cloud sync)
 
 // warm, muted palette that reads well as soft tinted calendar chips
 const COLORS = ["#c56b4b", "#d99a3f", "#7fa06a", "#6e86a6", "#9d6a8e", "#4f9d94", "#b98a5e", "#8a8078"];
@@ -60,11 +62,98 @@ export default function App() {
   const [supplyPop, setSupplyPop] = useState(null);
   const [rewardPop, setRewardPop] = useState(null);
 
+  // ─── cloud sync (opt-in via "おうちコード") ───────────────
+  const [householdCode, setHouseholdCode] = useState(() => {
+    try { return localStorage.getItem(HH) || null; } catch { return null; }
+  });
+  const [syncState, setSyncState] = useState("idle"); // idle | syncing | ok | error
+  const suppressSaveRef = useRef(false); // skip cloud-save when the change came from remote
+  const channelRef = useRef(null);
+  const payloadRef = useRef(null);
+
+  // keep localStorage cache + a live snapshot for seeding the cloud
   useEffect(() => {
+    payloadRef.current = { members, todos, shopping, notifyTime, v: 2 };
     try {
       localStorage.setItem(LS, JSON.stringify({ currentUser, members, todos, shopping, notifyTime }));
     } catch {}
   }, [currentUser, members, todos, shopping, notifyTime]);
+
+  function applyRemote(payload) {
+    if (!payload || !payload.members) return;
+    suppressSaveRef.current = true;
+    setMembers(payload.members);
+    setTodos(payload.todos || []);
+    setShopping(payload.shopping || []);
+    if (payload.notifyTime) setNotifyTime(payload.notifyTime);
+  }
+
+  function persistHouseholdCode(code) {
+    setHouseholdCode(code);
+    try {
+      if (code) localStorage.setItem(HH, code);
+      else localStorage.removeItem(HH);
+    } catch {}
+  }
+
+  // subscribe + initial load whenever the household code changes
+  useEffect(() => {
+    if (!householdCode) { setSyncState("idle"); return; }
+    let alive = true;
+    setSyncState("syncing");
+
+    const ch = supabase.channel(`hh:${householdCode}`, { config: { broadcast: { self: false } } });
+    ch.on("broadcast", { event: "sync" }, ({ payload }) => { if (alive) applyRemote(payload); });
+    ch.subscribe();
+    channelRef.current = ch;
+
+    cloudLoad(householdCode)
+      .then((remote) => {
+        if (!alive) return;
+        if (remote && remote.members) {
+          applyRemote(remote);
+        } else {
+          // brand-new household: seed the cloud with what's on this device
+          suppressSaveRef.current = false;
+          cloudSave(householdCode, payloadRef.current)
+            .then(() => ch.send({ type: "broadcast", event: "sync", payload: payloadRef.current }))
+            .catch(() => {});
+        }
+        setSyncState("ok");
+      })
+      .catch(() => { if (alive) setSyncState("error"); });
+
+    return () => {
+      alive = false;
+      supabase.removeChannel(ch);
+      channelRef.current = null;
+    };
+  }, [householdCode]);
+
+  // debounced push whenever local data changes (skips remote-originated changes)
+  useEffect(() => {
+    if (!householdCode) return;
+    if (suppressSaveRef.current) { suppressSaveRef.current = false; return; }
+    const payload = { members, todos, shopping, notifyTime, v: 2 };
+    const t = setTimeout(() => {
+      setSyncState("syncing");
+      cloudSave(householdCode, payload)
+        .then(() => {
+          channelRef.current?.send({ type: "broadcast", event: "sync", payload });
+          setSyncState("ok");
+        })
+        .catch(() => setSyncState("error"));
+    }, 600);
+    return () => clearTimeout(t);
+  }, [members, todos, shopping, notifyTime, householdCode]);
+
+  // re-pull when the tab regains focus (covers missed realtime events)
+  useEffect(() => {
+    if (!householdCode) return;
+    const onFocus = () => cloudLoad(householdCode).then((r) => r && applyRemote(r)).catch(() => {});
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [householdCode]);
 
   const me = members.find((m) => m.id === currentUser);
   const memberById = (id) => members.find((m) => m.id === id);
@@ -186,6 +275,10 @@ export default function App() {
       {tab === "more" && (
         <MoreView members={members} todos={todos} currentUser={currentUser} me={me}
           notifyTime={notifyTime} setNotifyTime={setNotifyTime}
+          householdCode={householdCode} syncState={syncState}
+          onCreateHousehold={() => persistHouseholdCode(makeHouseholdCode())}
+          onJoinHousehold={(code) => { const c = (code || "").trim().toUpperCase(); if (c) persistHouseholdCode(c); }}
+          onLeaveHousehold={() => persistHouseholdCode(null)}
           onAddMember={() => setMemberForm({ name: "", emoji: "😊", color: COLORS[0], rThresh: "3", rMsg: "" })}
           onEditMember={(m) => setMemberForm({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, rThresh: m.reward?.threshold?.toString() || "3", rMsg: m.reward?.message || "" })}
           onSwitchUser={() => setCurrentUser(null)} />
@@ -465,7 +558,15 @@ function ShopView({ shopping, setShopping }) {
 // ══════════════════════════════════════════════════════════
 // More (members, reward stats, settings)
 // ══════════════════════════════════════════════════════════
-function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, onAddMember, onEditMember, onSwitchUser }) {
+function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, householdCode, syncState, onCreateHousehold, onJoinHousehold, onLeaveHousehold, onAddMember, onEditMember, onSwitchUser }) {
+  const [joinCode, setJoinCode] = useState("");
+  const [copied, setCopied] = useState(false);
+  const syncLabel = { idle: "", syncing: "同期中…", ok: "同期済み", error: "オフライン" }[syncState] || "";
+  function copyCode() {
+    try { navigator.clipboard?.writeText(householdCode); } catch {}
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  }
+
   // reward matrix
   const subMatrix = useMemo(() => {
     const mx = {};
@@ -494,7 +595,42 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
         </div>
       </div>
       <div className="body">
+        {/* ── おうち共有（クラウド同期） ── */}
         <div className="list-group" style={{ marginTop: 16 }}>
+          <div className="list-title">🔗 おうち共有（端末間で同期）</div>
+          {householdCode ? (
+            <>
+              <div className="list-row">
+                <span className="lr-label">おうちコード</span>
+                <span className="lr-value" style={{ fontFamily: "'DM Sans',monospace", color: "var(--ink)", letterSpacing: ".02em" }}>{householdCode}</span>
+              </div>
+              <div className="list-row">
+                <span className="lr-label">状態</span>
+                <span className="lr-value">{syncLabel}</span>
+              </div>
+              <div className="list-row tappable" onClick={copyCode}>
+                <span className="lr-label" style={{ color: "var(--brand-ink)" }}>{copied ? "コピーしました ✓" : "コードをコピー"}</span>
+              </div>
+              <div className="list-row tappable" onClick={onLeaveHousehold}>
+                <span className="lr-label" style={{ color: "var(--brand-ink)" }}>共有をやめる（この端末のみに戻す）</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="list-row tappable" onClick={onCreateHousehold}>
+                <span className="lr-label" style={{ color: "var(--brand-ink)" }}>＋ 新しいおうちを作成して共有</span>
+              </div>
+              <div className="list-row" style={{ gap: 8 }}>
+                <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="OUCHI-XXXX-XXXX"
+                  style={{ flex: 1, border: "none", background: "transparent", fontFamily: "'DM Sans',monospace", fontSize: 15, outline: "none", textTransform: "uppercase" }} />
+                <button className="asbtn" style={{ color: "var(--brand-ink)", fontWeight: 700 }} onClick={() => { onJoinHousehold(joinCode); setJoinCode(""); }}>参加</button>
+              </div>
+              <div className="list-title" style={{ paddingTop: 4 }}>家族の「おうちコード」を入れると、同じデータを共有できます。</div>
+            </>
+          )}
+        </div>
+
+        <div className="list-group">
           <div className="list-title">🏅 代行記録（{me?.emoji}{me?.name}）</div>
           {subsForMe.length === 0 && mySubs.length === 0 && <div className="list-row"><span className="lr-label" style={{ color: "var(--ink3)" }}>まだ記録がありません</span></div>}
           {subsForMe.map((s, i) => (
