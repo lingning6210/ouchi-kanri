@@ -56,6 +56,7 @@ export default function App() {
     try { return localStorage.getItem(HH) || null; } catch { return null; }
   });
   const [syncState, setSyncState] = useState("idle"); // idle | syncing | ok | error
+  const [loginJoinCode, setLoginJoinCode] = useState("");
   const suppressSaveRef = useRef(false); // skip cloud-save when the change came from remote
   const channelRef = useRef(null);
   const payloadRef = useRef(null);
@@ -238,6 +239,18 @@ export default function App() {
           <button className="link-btn" onClick={() => setMemberForm({ name: "", emoji: "😊", color: COLORS[0], rThresh: "3", rMsg: "" })}>
             ＋ 家族を追加
           </button>
+
+          <div className="login-join">
+            <div className="login-or">または、家族から共有された方は</div>
+            {syncState === "error" && <div className="login-join-err">コードが見つからないか、接続できませんでした</div>}
+            <div className="login-join-row">
+              <input value={loginJoinCode} onChange={(e) => setLoginJoinCode(e.target.value)}
+                placeholder="OUCHI-XXXX-XXXX" style={{ textTransform: "uppercase" }}
+                onKeyDown={(e) => { if (e.key === "Enter" && loginJoinCode.trim()) persistHouseholdCode(loginJoinCode.trim().toUpperCase()); }} />
+              <button onClick={() => { const c = loginJoinCode.trim().toUpperCase(); if (c) persistHouseholdCode(c); }}>参加</button>
+            </div>
+            {householdCode && syncState === "syncing" && <div className="login-or">同期中…（{householdCode}）</div>}
+          </div>
         </div>
         {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} />}
       </div>
