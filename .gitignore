@@ -1,4 +1,22 @@
+# dependencies / build
 node_modules
 dist
-.DS_Store
+
+# logs
 *.log
+
+# secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Claude Code personal settings (do not share)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
