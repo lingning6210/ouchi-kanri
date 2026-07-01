@@ -145,6 +145,18 @@ export default function App() {
     return () => window.removeEventListener("focus", onFocus);
   }, [householdCode]);
 
+  // auto-join from a shared link: ?join=OUCHI-XXXX-XXXX
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const j = params.get("join");
+    if (j) {
+      persistHouseholdCode(j.trim().toUpperCase());
+      params.delete("join");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    }
+  }, []);
+
   const me = members.find((m) => m.id === currentUser);
   const memberById = (id) => members.find((m) => m.id === id);
 
@@ -569,10 +581,20 @@ function ShopView({ shopping, setShopping }) {
 function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, householdCode, syncState, onCreateHousehold, onJoinHousehold, onLeaveHousehold, onAddMember, onEditMember, onSwitchUser }) {
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const syncLabel = { idle: "", syncing: "同期中…", ok: "同期済み", error: "オフライン" }[syncState] || "";
+  const shareUrl = householdCode ? `${window.location.origin}${window.location.pathname}?join=${householdCode}` : "";
   function copyCode() {
     try { navigator.clipboard?.writeText(householdCode); } catch {}
     setCopied(true); setTimeout(() => setCopied(false), 1500);
+  }
+  async function shareLink() {
+    if (navigator.share) {
+      try { await navigator.share({ title: "おうち管理", text: "このリンクからおうちに参加してね🏠", url: shareUrl }); } catch {}
+    } else {
+      try { await navigator.clipboard?.writeText(shareUrl); } catch {}
+      setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1500);
+    }
   }
 
   // reward matrix
@@ -615,6 +637,9 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
               <div className="list-row">
                 <span className="lr-label">状態</span>
                 <span className="lr-value">{syncLabel}</span>
+              </div>
+              <div className="list-row tappable" onClick={shareLink}>
+                <span className="lr-label" style={{ color: "var(--brand-ink)", fontWeight: 700 }}>{linkCopied ? "リンクをコピーしました ✓" : "🔗 参加リンクを送る"}</span>
               </div>
               <div className="list-row tappable" onClick={copyCode}>
                 <span className="lr-label" style={{ color: "var(--brand-ink)" }}>{copied ? "コピーしました ✓" : "コードをコピー"}</span>
