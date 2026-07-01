@@ -3,7 +3,6 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/japanese-text-readability-unop12
       - main
   workflow_dispatch:
 
