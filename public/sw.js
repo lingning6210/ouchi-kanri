@@ -1,5 +1,5 @@
 // おうち管理 service worker — offline cache + web push
-const CACHE = "ouchi-cache-v1";
+const CACHE = "ouchi-cache-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 
