@@ -56,6 +56,7 @@ export default function App() {
     try { return localStorage.getItem(HH) || null; } catch { return null; }
   });
   const [syncState, setSyncState] = useState("idle"); // idle | syncing | ok | error
+  const [syncErr, setSyncErr] = useState("");
   const [loginJoinCode, setLoginJoinCode] = useState("");
   const suppressSaveRef = useRef(false); // skip cloud-save when the change came from remote
   const channelRef = useRef(null);
@@ -107,11 +108,11 @@ export default function App() {
           suppressSaveRef.current = false;
           cloudSave(householdCode, payloadRef.current)
             .then(() => ch.send({ type: "broadcast", event: "sync", payload: payloadRef.current }))
-            .catch(() => {});
+            .catch((e) => { if (alive) { setSyncState("error"); setSyncErr(e?.message || String(e)); } });
         }
-        setSyncState("ok");
+        setSyncState("ok"); setSyncErr("");
       })
-      .catch(() => { if (alive) setSyncState("error"); });
+      .catch((e) => { if (alive) { setSyncState("error"); setSyncErr(e?.message || String(e)); } });
 
     return () => {
       alive = false;
@@ -130,9 +131,9 @@ export default function App() {
       cloudSave(householdCode, payload)
         .then(() => {
           channelRef.current?.send({ type: "broadcast", event: "sync", payload });
-          setSyncState("ok");
+          setSyncState("ok"); setSyncErr("");
         })
-        .catch(() => setSyncState("error"));
+        .catch((e) => { setSyncState("error"); setSyncErr(e?.message || String(e)); });
     }, 600);
     return () => clearTimeout(t);
   }, [members, todos, shopping, notifyTime, householdCode]);
@@ -295,7 +296,7 @@ export default function App() {
       {tab === "more" && (
         <MoreView members={members} todos={todos} currentUser={currentUser} me={me}
           notifyTime={notifyTime} setNotifyTime={setNotifyTime}
-          householdCode={householdCode} syncState={syncState}
+          householdCode={householdCode} syncState={syncState} syncErr={syncErr}
           onCreateHousehold={() => persistHouseholdCode(makeHouseholdCode())}
           onJoinHousehold={(code) => { const c = (code || "").trim().toUpperCase(); if (c) persistHouseholdCode(c); }}
           onLeaveHousehold={() => persistHouseholdCode(null)}
@@ -578,7 +579,7 @@ function ShopView({ shopping, setShopping }) {
 // ══════════════════════════════════════════════════════════
 // More (members, reward stats, settings)
 // ══════════════════════════════════════════════════════════
-function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, householdCode, syncState, onCreateHousehold, onJoinHousehold, onLeaveHousehold, onAddMember, onEditMember, onSwitchUser }) {
+function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, householdCode, syncState, syncErr, onCreateHousehold, onJoinHousehold, onLeaveHousehold, onAddMember, onEditMember, onSwitchUser }) {
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -638,6 +639,11 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
                 <span className="lr-label">状態</span>
                 <span className="lr-value">{syncLabel}</span>
               </div>
+              {syncState === "error" && syncErr && (
+                <div className="list-row" style={{ minHeight: 0, padding: "4px 16px 10px" }}>
+                  <span style={{ fontSize: 11, color: "var(--brand-ink)", wordBreak: "break-all" }}>詳細: {syncErr}</span>
+                </div>
+              )}
               <div className="list-row tappable" onClick={shareLink}>
                 <span className="lr-label" style={{ color: "var(--brand-ink)", fontWeight: 700 }}>{linkCopied ? "リンクをコピーしました ✓" : "🔗 参加リンクを送る"}</span>
               </div>
