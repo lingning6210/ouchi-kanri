@@ -5,6 +5,7 @@ import {
   nthOfMonth, getNthWeekdayInMonth,
 } from "./recurrence.js";
 import { supabase, cloudLoad, cloudSave, makeHouseholdCode } from "./cloud.js";
+import { pushSupported, isPushEnabled, enablePush, disablePush, updatePushTime } from "./push.js";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const TODAY = todayD();
@@ -584,6 +585,22 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState("");
+  useEffect(() => { isPushEnabled().then(setPushOn).catch(() => {}); }, []);
+  async function togglePush() {
+    setPushBusy(true); setPushMsg("");
+    try {
+      if (pushOn) { await disablePush(); setPushOn(false); }
+      else { await enablePush(notifyTime, householdCode); setPushOn(true); }
+    } catch (e) { setPushMsg(e?.message || "失敗しました"); }
+    setPushBusy(false);
+  }
+  function changeNotifyTime(v) {
+    setNotifyTime(v);
+    if (pushOn) updatePushTime(v, householdCode).catch(() => {});
+  }
   const syncLabel = { idle: "", syncing: "同期中…", ok: "同期済み", error: "オフライン" }[syncState] || "";
   const shareUrl = householdCode ? `${window.location.origin}${window.location.pathname}?join=${householdCode}` : "";
   function copyCode() {
@@ -698,7 +715,25 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
           <div className="list-title">🔔 通知</div>
           <div className="list-row">
             <span className="lr-label">毎日の通知時刻</span>
-            <input className="lr-date" type="time" value={notifyTime} onChange={(e) => setNotifyTime(e.target.value)} />
+            <input className="lr-date" type="time" value={notifyTime} onChange={(e) => changeNotifyTime(e.target.value)} />
+          </div>
+          {pushSupported() ? (
+            <div className="list-row tappable" onClick={() => !pushBusy && togglePush()}>
+              <span className="lr-label">プッシュ通知</span>
+              <span className="lr-value" style={{ color: pushOn ? "var(--sage)" : "var(--brand-ink)", fontWeight: 700 }}>
+                {pushBusy ? "…" : pushOn ? "オン ✓（タップでオフ）" : "オンにする"}
+              </span>
+            </div>
+          ) : (
+            <div className="list-row"><span className="lr-label" style={{ color: "var(--ink3)" }}>この端末はプッシュ通知に非対応</span></div>
+          )}
+          {pushMsg && (
+            <div className="list-row" style={{ minHeight: 0, padding: "4px 16px 10px" }}>
+              <span style={{ fontSize: 11, color: "var(--brand-ink)" }}>{pushMsg}</span>
+            </div>
+          )}
+          <div className="list-title" style={{ paddingTop: 4 }}>
+            ※ iPhoneは「ホーム画面に追加」したアプリから開いて有効化してください。
           </div>
         </div>
 
