@@ -230,3 +230,15 @@ body {
 @keyframes up { from { transform: translateY(30px); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
 .sheet-handle { width: 40px; height: 4px; background: #ddd3c6; border-radius: 3px; margin: 6px auto 12px; }
 .sheet h3 { padding: 0 18px 10px; font-size: 16px; }
+
+/* help / usage guide */
+.help { padding: 8px 18px 32px; }
+.help .lead { font-size: 14px; color: var(--ink2); line-height: 1.8; margin: 8px 0 4px; }
+.help h2 { font-size: 15px; font-weight: 700; color: var(--brand-ink); margin: 22px 0 8px; display: flex; align-items: center; gap: 6px; }
+.help p { font-size: 14px; line-height: 1.9; color: var(--ink); margin-bottom: 6px; }
+.help ul { list-style: none; margin: 4px 0 6px; }
+.help li { font-size: 14px; line-height: 1.85; color: var(--ink); padding-left: 18px; position: relative; margin-bottom: 4px; }
+.help li::before { content: "・"; position: absolute; left: 2px; color: var(--brand); }
+.help .step { background: var(--card); border: 1px solid var(--sep); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.help .step b { color: var(--brand-ink); }
+.help .tag { display: inline-block; background: var(--brand-soft); color: var(--brand-ink); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-right: 4px; }

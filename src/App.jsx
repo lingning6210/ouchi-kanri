@@ -583,6 +583,7 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const syncLabel = { idle: "", syncing: "同期中…", ok: "同期済み", error: "オフライン" }[syncState] || "";
   const shareUrl = householdCode ? `${window.location.origin}${window.location.pathname}?join=${householdCode}` : "";
   function copyCode() {
@@ -626,8 +627,15 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
         </div>
       </div>
       <div className="body">
-        {/* ── おうち共有（クラウド同期） ── */}
         <div className="list-group" style={{ marginTop: 16 }}>
+          <div className="list-row tappable" onClick={() => setShowHelp(true)}>
+            <span className="lr-label" style={{ fontWeight: 600 }}>❓ 使い方</span>
+            <span className="lr-value">›</span>
+          </div>
+        </div>
+
+        {/* ── おうち共有（クラウド同期） ── */}
+        <div className="list-group">
           <div className="list-title">🔗 おうち共有（端末間で同期）</div>
           {householdCode ? (
             <>
@@ -707,7 +715,56 @@ function MoreView({ members, todos, currentUser, me, notifyTime, setNotifyTime, 
 
         <div className="btn-row"><button className="btn g" onClick={onSwitchUser}>ユーザーを切り替え</button></div>
       </div>
+      {showHelp && <HelpScreen onClose={() => setShowHelp(false)} />}
     </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// Help / usage guide screen
+// ══════════════════════════════════════════════════════════
+function HelpScreen({ onClose }) {
+  return (
+    <div className="screen">
+      <div className="pheader">
+        <div className="pheader-top">
+          <button className="pheader-back" onClick={onClose}>‹</button>
+          <span className="pheader-title">使い方</span>
+          <span className="pheader-spacer" />
+        </div>
+      </div>
+      <div className="body help">
+        <h2>🏠 このアプリは？</h2>
+        <p className="lead">家事を「定期タスク」として家族みんなで回すためのアプリです。誰が・いつ・何をやるかをカレンダーで見える化し、家事と買い物をひとつにつなげます。</p>
+        <ul>
+          <li>🔁 繰り返す家事を自動で管理（毎日・毎週・毎月・毎年）</li>
+          <li>🧴 家事と買い物が連動（完了時に消耗品を確認して自動追加）</li>
+          <li>👪 家族で共有（同じ「おうちコード」でリアルタイム同期）</li>
+        </ul>
+
+        <h2>📱 はじめ方</h2>
+        <div className="step"><b>① 家族を登録</b><p>最初の画面で「＋家族を追加」。名前・絵文字・色を決めます。</p></div>
+        <div className="step"><b>② おうちを作る</b><p>この「その他」タブ →「＋新しいおうちを作成して共有」。おうちコードが発行されます。</p></div>
+        <div className="step"><b>③ 家族を招待</b><p>「🔗 参加リンクを送る」でLINE等に共有。家族はリンクをタップ→自分を選ぶだけで参加できます。</p></div>
+
+        <h2>🗓 毎日の使い方</h2>
+        <p><span className="tag">カレンダー</span>今月の家事を一覧。日をタップで完了チェック（先の予定を前倒しでやってもOK）。</p>
+        <p><span className="tag">ToDo</span>今日やること＋やり残しを表示。○をタップで完了。</p>
+        <p><span className="tag">買い物</span>足りない物を追加。家事の完了時にも自動で増えます。</p>
+        <p><span className="tag">その他</span>家族・通知時刻・代行記録・共有の設定。</p>
+
+        <h2>➕ タスクの追加</h2>
+        <p>下中央の <b>＋</b> ボタンから、名前・担当・繰り返し・消耗品・色を設定して追加します。</p>
+
+        <h2>🧴 消耗品の連携</h2>
+        <p>タスクに消耗品（例：洗剤）を紐づけておくと、完了時に「まだある？／もうない」を確認。「もうない」を選ぶと買い物リストに自動で追加されます。</p>
+
+        <h2>👪 代行のごほうび</h2>
+        <p>担当じゃない家事を代わりにやると記録され、設定した回数に達するとリクエスト（例：お菓子買ってきて）が届きます。メンバー編集から設定できます。</p>
+
+        <div className="btn-row"><button className="btn p" onClick={onClose}>とじる</button></div>
+      </div>
+    </div>
   );
 }
 
