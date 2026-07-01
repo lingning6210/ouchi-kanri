@@ -231,6 +231,9 @@ body {
 .sheet-handle { width: 40px; height: 4px; background: #ddd3c6; border-radius: 3px; margin: 6px auto 12px; }
 .sheet h3 { padding: 0 18px 10px; font-size: 16px; }
 
+/* demo banner */
+.demo-banner { flex-shrink: 0; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; text-align: center; padding: 6px 12px; letter-spacing: .02em; }
+
 /* help / usage guide */
 .help { padding: 8px 18px 32px; }
 .help .lead { font-size: 14px; color: var(--ink2); line-height: 1.8; margin: 8px 0 4px; }

@@ -34,8 +34,35 @@ function load() {
   return SEED;
 }
 
+// ─── demo mode (?demo): populated sample data, no saving, no cloud sync ───
+const DEMO = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
+const monthStart = fmtD(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+const dAgo = (n) => { const d = new Date(TODAY); d.setDate(d.getDate() - n); return fmtD(d); };
+const DEMO_SEED = {
+  currentUser: "m1",
+  members: [
+    { id: "m1", name: "お母さん", emoji: "👩", color: "#c56b4b", reward: { threshold: 3, message: "お菓子買ってきて🫶" } },
+    { id: "m2", name: "お父さん", emoji: "👨", color: "#6e86a6", reward: { threshold: 3, message: "コーヒー奢って☕" } },
+    { id: "m3", name: "長女", emoji: "👧", color: "#9d6a8e", reward: { threshold: 5, message: "ジュース買って🧃" } },
+    { id: "m4", name: "長男", emoji: "🧒", color: "#d99a3f", reward: null },
+  ],
+  todos: [
+    { id: "t1", name: "お風呂掃除", ownerId: "m1", color: "#c56b4b", start: monthStart, repeat: { freq: "weekly", interval: 1, weekdays: [1, 4] }, supply: "バスクリーナー", completionLog: [{ date: dAgo(3), doerId: "m1", isSub: false }] },
+    { id: "t2", name: "ゴミ捨て", ownerId: "m2", color: "#6e86a6", start: monthStart, repeat: { freq: "weekly", interval: 1, weekdays: [2, 5] }, supply: "ゴミ袋", completionLog: [] },
+    { id: "t3", name: "トイレ掃除", ownerId: "m1", color: "#c56b4b", start: monthStart, repeat: { freq: "monthly", interval: 1, mode: "nth", nth: 1, weekday: 5, date: 3 }, supply: "トイレクリーナー", completionLog: [] },
+    { id: "t4", name: "シーツ交換", ownerId: "m3", color: "#9d6a8e", start: monthStart, repeat: { freq: "monthly", interval: 1, mode: "date", date: 1, nth: 0, weekday: 0 }, supply: "", completionLog: [] },
+    { id: "t5", name: "掃除機かけ", ownerId: "m4", color: "#d99a3f", start: dAgo(10), repeat: { freq: "daily", interval: 2 }, supply: "", completionLog: [{ date: dAgo(2), doerId: "m4", isSub: false }] },
+  ],
+  shopping: [
+    { id: "s1", name: "牛乳", done: false },
+    { id: "s2", name: "洗剤", done: false },
+    { id: "s3", name: "卵", done: true },
+  ],
+  notifyTime: "20:00",
+};
+
 export default function App() {
-  const init = load();
+  const init = DEMO ? DEMO_SEED : load();
   const [currentUser, setCurrentUser] = useState(init.currentUser);
   const [members, setMembers] = useState(init.members);
   const [todos, setTodos] = useState(init.todos);
@@ -65,6 +92,7 @@ export default function App() {
 
   // keep localStorage cache + a live snapshot for seeding the cloud
   useEffect(() => {
+    if (DEMO) return; // demo is ephemeral: never persist
     payloadRef.current = { members, todos, shopping, notifyTime, v: 2 };
     try {
       localStorage.setItem(LS, JSON.stringify({ currentUser, members, todos, shopping, notifyTime }));
@@ -149,6 +177,7 @@ export default function App() {
 
   // auto-join from a shared link: ?join=OUCHI-XXXX-XXXX
   useEffect(() => {
+    if (DEMO) return;
     const params = new URLSearchParams(window.location.search);
     const j = params.get("join");
     if (j) {
@@ -290,6 +319,7 @@ export default function App() {
 
   return (
     <div className="phone">
+      {DEMO && <div className="demo-banner">🔎 デモ（お試し）— 入力は保存されません</div>}
       {tab === "cal" && (
         <CalendarView
           calMonth={calMonth} setCalMonth={setCalMonth} todos={todos}
