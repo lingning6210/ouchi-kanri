@@ -266,7 +266,7 @@ export default function App() {
             {householdCode && syncState === "syncing" && <div className="login-or">同期中…（{householdCode}）</div>}
           </div>
         </div>
-        {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} />}
+        {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} onDelete={memberForm.id ? () => deleteMember(memberForm.id) : null} />}
       </div>
     );
   }
@@ -278,6 +278,13 @@ export default function App() {
     const reward = mf.rMsg.trim() ? { threshold: isNaN(thr) ? 3 : thr, message: mf.rMsg.trim() } : null;
     if (mf.id) setMembers((ms) => ms.map((m) => m.id === mf.id ? { ...m, name: mf.name.trim(), emoji: mf.emoji, color: mf.color, reward } : m));
     else setMembers((ms) => [...ms, { id: uid(), name: mf.name.trim(), emoji: mf.emoji, color: mf.color, reward }]);
+    setMemberForm(null);
+  }
+
+  function deleteMember(id) {
+    setMembers((ms) => ms.filter((m) => m.id !== id));
+    setTodos((ts) => ts.map((t) => t.ownerId === id ? { ...t, ownerId: null } : t));
+    if (currentUser === id) setCurrentUser(null);
     setMemberForm(null);
   }
 
@@ -334,7 +341,7 @@ export default function App() {
       )}
 
       {/* member editor */}
-      {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} />}
+      {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} onDelete={memberForm.id ? () => deleteMember(memberForm.id) : null} />}
 
       {/* popups */}
       {supplyPop && (
@@ -971,7 +978,8 @@ function RepeatEditor({ start, repeat, onChange, onBack }) {
 // ══════════════════════════════════════════════════════════
 // Member editor
 // ══════════════════════════════════════════════════════════
-function MemberEditor({ mf, setMf, onSave, onClose }) {
+function MemberEditor({ mf, setMf, onSave, onClose, onDelete }) {
+  const [confirmDel, setConfirmDel] = useState(false);
   return (
     <div className="screen">
       <div className="pheader">
@@ -1004,6 +1012,21 @@ function MemberEditor({ mf, setMf, onSave, onClose }) {
           <button className="btn g" onClick={onClose}>キャンセル</button>
           <button className="btn p" onClick={onSave}>{mf.id ? "保存" : "追加"}</button>
         </div>
+        {onDelete && (
+          <div className="field" style={{ marginTop: 8 }}>
+            {confirmDel ? (
+              <div className="btn-row" style={{ padding: 0 }}>
+                <button className="btn g" onClick={() => setConfirmDel(false)}>やめる</button>
+                <button className="btn" style={{ background: "var(--brand)", color: "#fff" }} onClick={onDelete}>本当に削除する</button>
+              </div>
+            ) : (
+              <button className="link-btn" style={{ width: "100%", borderColor: "#e3b8ab", color: "var(--brand-ink)" }} onClick={() => setConfirmDel(true)}>
+                🗑 このメンバーを削除
+              </button>
+            )}
+            <div className="list-title" style={{ padding: "8px 0 0" }}>削除すると、この人が担当のタスクは「担当なし」に戻ります。</div>
+          </div>
+        )}
       </div>
     </div>
   );
