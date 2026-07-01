@@ -26,7 +26,8 @@ body {
 .phone {
   max-width: 440px;
   margin: 0 auto;
-  min-height: 100vh;
+  height: 100vh;         /* fallback */
+  height: 100dvh;        /* app shell: fixed viewport height so only .body scrolls */
   background: var(--bg);
   display: flex;
   flex-direction: column;
@@ -167,7 +168,7 @@ body {
 
 /* ─── bottom tab bar ─────────────────────────── */
 .tabbar {
-  position: sticky; bottom: 0; height: var(--tabbar-h);
+  flex-shrink: 0; height: var(--tabbar-h);
   background: var(--card); border-top: 1px solid var(--sep);
   display: grid; grid-template-columns: repeat(5,1fr); align-items: center;
   padding-bottom: env(safe-area-inset-bottom); z-index: 30;
