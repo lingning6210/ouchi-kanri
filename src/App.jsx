@@ -278,6 +278,21 @@ export default function App() {
     }));
   }
 
+  // delete just one occurrence (skip it); once-tasks delete the whole task
+  function skipOccurrence(todoId, dateStr) {
+    const t = todos.find((x) => x.id === todoId);
+    if (!t) return;
+    if (!t.repeat || t.repeat.freq === "none") { deleteTask(todoId); return; }
+    setTodos((ts) => ts.map((x) => {
+      if (x.id !== todoId) return x;
+      const moves = { ...(x.moves || {}) };
+      let originKey = dateStr;
+      for (const [orig, dest] of Object.entries(moves)) { if (dest === dateStr) { originKey = orig; delete moves[originKey]; break; } }
+      const skips = Array.from(new Set([...(x.skips || []), originKey]));
+      return { ...x, moves, skips };
+    }));
+  }
+
   // ─── login ────────────────────────────────────────────
   if (!currentUser) {
     return (
@@ -385,7 +400,7 @@ export default function App() {
       {/* day detail sheet */}
       {daySheet && (
         <DaySheet dateStr={daySheet} todos={todos} members={members} isDone={isDone}
-          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { const ds = daySheet; setDaySheet(null); openEditTask(t, ds); }} onMove={moveOccurrence} />
+          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { const ds = daySheet; setDaySheet(null); openEditTask(t, ds); }} onMove={moveOccurrence} onSkip={skipOccurrence} />
       )}
 
       {/* task editor */}
@@ -506,7 +521,7 @@ function CalendarView({ calMonth, setCalMonth, todos, onDay, isDone }) {
 // ══════════════════════════════════════════════════════════
 // Day detail sheet
 // ══════════════════════════════════════════════════════════
-function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit, onMove }) {
+function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit, onMove, onSkip }) {
   const d = parseD(dateStr);
   const list = todos.filter((t) => occursOnTodo(t, d));
   const label = `${d.getMonth() + 1}月${d.getDate()}日（${DAYS_JP[d.getDay()]}）`;
@@ -542,9 +557,16 @@ function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit
                     <button className="asbtn" onClick={() => setMoving(null)}>やめる</button>
                   </div>
                 ) : (
-                  <button className="move-btn" onClick={() => setMoving(t.id)}>
-                    📅 この日をずらす{from ? "（元に戻すには元の日付を選択）" : ""}
-                  </button>
+                  <div className="move-actions">
+                    <button className="move-btn" onClick={() => setMoving(t.id)}>
+                      📅 この日をずらす{from ? "（元に戻すには元の日付を選択）" : ""}
+                    </button>
+                    {(t.repeat && t.repeat.freq !== "none") && (
+                      <button className="move-btn del" onClick={() => { if (confirm("この日の予定だけ削除します（繰り返し全体は残ります）。よろしいですか？")) onSkip(t.id, dateStr); }}>
+                        🗑 この日だけ削除
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

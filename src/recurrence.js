@@ -97,8 +97,10 @@ export function occursOn(start, repeat, target) {
 export function occursOnTodo(todo, target) {
   const ds = fmtD(target);
   const moves = todo.moves || {};
+  const skips = todo.skips || [];
   for (const to of Object.values(moves)) if (to === ds) return true; // 移動してきた
   if (moves[ds]) return false; // 別の日へ移動した
+  if (skips.includes(ds)) return false; // この回だけ削除された
   return occursOn(todo.start, todo.repeat, target);
 }
 

@@ -148,7 +148,9 @@ body {
 .chip.moved { background: #eae4f2; color: #7a5aa0; }
 .tcard .del { background: none; border: none; color: #cfc6ba; cursor: pointer; font-size: 18px; padding: 2px 4px; }
 .empty { text-align: center; color: var(--ink3); padding: 52px 20px; line-height: 2; font-size: 14px; }
-.move-btn { margin-top: 8px; background: none; border: none; padding: 2px 0; font-family: inherit; font-size: 12px; color: var(--brand-ink); cursor: pointer; }
+.move-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.move-btn { margin-top: 8px; background: none; border: none; padding: 2px 0; font-family: inherit; font-size: 12px; color: var(--brand-ink); cursor: pointer; text-align: left; }
+.move-btn.del { color: var(--red); }
 .move-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink2); flex-wrap: wrap; }
 .move-row input { border: 1.5px solid var(--sep); border-radius: 8px; padding: 6px 8px; font-family: inherit; font-size: 14px; }
 
