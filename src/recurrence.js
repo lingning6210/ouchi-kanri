@@ -9,6 +9,11 @@ export function parseD(s) {
 export function fmtD(dt) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
+export function fmtMD(str) {
+  // "YYYY-MM-DD" → "M/D"
+  const [, m, d] = str.split("-");
+  return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
+}
 export function todayD() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);

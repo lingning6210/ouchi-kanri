@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import "./styles.css";
 import {
-  DAYS_JP, parseD, fmtD, todayD, occursOn, occursOnTodo, movedFrom, repeatSummary, repeatShort,
+  DAYS_JP, parseD, fmtD, fmtMD, todayD, occursOn, occursOnTodo, movedFrom, repeatSummary, repeatShort,
   nthOfMonth, getNthWeekdayInMonth,
 } from "./recurrence.js";
 import { supabase, cloudLoad, cloudSave, makeHouseholdCode } from "./cloud.js";
