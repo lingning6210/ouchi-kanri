@@ -15,6 +15,7 @@
 }
 
 html, body, #root { height: 100%; }
+html, body { overflow-x: hidden; }
 body {
   background: var(--bg);
   font-family: 'M PLUS Rounded 1c', system-ui, sans-serif;
@@ -59,7 +60,7 @@ body {
 .cal-header .navbtn:active { transform: scale(.94); }
 
 /* ─── scroll body ─────────────────────────── */
-.body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--tabbar-h) + 24px); }
+.body { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--tabbar-h) + 24px); }
 
 /* ─── calendar grid ─────────────────────────── */
 .cal-dow { display: grid; grid-template-columns: repeat(7,1fr); background: var(--card); border-bottom: 1px solid var(--sep); }
@@ -204,9 +205,9 @@ body {
 .field input, .field select { width: 100%; padding: 13px; border-radius: 12px; border: 1.5px solid var(--sep); background: var(--card); font-family: inherit; font-size: 15px; color: var(--ink); outline: none; }
 .field input:focus, .field select:focus { border-color: var(--brand); }
 .nav-row { display: flex; align-items: center; padding: 15px 16px; background: var(--card); border: 1px solid var(--sep); border-radius: var(--radius); margin: 18px 12px 0; cursor: pointer; box-shadow: var(--shadow); }
-.nav-row .nr-label { flex: 1; font-size: 15px; font-weight: 500; }
-.nav-row .nr-value { color: var(--ink3); font-size: 15px; }
-.nav-row .nr-arrow { color: #cbc1b4; margin-left: 8px; font-size: 18px; }
+.nav-row .nr-label { font-size: 15px; font-weight: 500; white-space: nowrap; }
+.nav-row .nr-value { flex: 1; min-width: 0; margin-left: 12px; color: var(--ink3); font-size: 15px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-row .nr-arrow { color: #cbc1b4; margin-left: 8px; font-size: 18px; flex-shrink: 0; }
 
 .emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px; }
 .emoji-btn { width: 42px; height: 42px; border-radius: 12px; border: 1.5px solid var(--sep); background: var(--card); font-size: 20px; cursor: pointer; }
