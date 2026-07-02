@@ -240,17 +240,21 @@ export default function App() {
 
   // ─── task form ────────────────────────────────────────
   function openNewTask() {
-    setTf({ id: null, name: "", ownerId: currentUser || "", start: TODAY_STR, repeat: { freq: "none" }, supply: "", color: me?.color || COLORS[0] });
+    setTf({ id: null, name: "", ownerId: currentUser || "", date: TODAY_STR, origOcc: TODAY_STR, repeat: { freq: "none" }, supply: "", color: me?.color || COLORS[0] });
   }
-  function openEditTask(t) {
-    setTf({ id: t.id, name: t.name, ownerId: t.ownerId || "", start: t.start, repeat: t.repeat, supply: t.supply || "", color: t.color || COLORS[0] });
+  function openEditTask(t, occDate) {
+    const oc = occDate || t.start;
+    setTf({ id: t.id, name: t.name, ownerId: t.ownerId || "", start: t.start, repeat: t.repeat, supply: t.supply || "", color: t.color || COLORS[0], date: oc, origOcc: oc });
   }
   function saveTask() {
     if (!tf.name.trim()) return;
     if (tf.id) {
-      setTodos((ts) => ts.map((x) => x.id === tf.id ? { ...x, name: tf.name.trim(), ownerId: tf.ownerId || null, start: tf.start, repeat: tf.repeat, supply: tf.supply.trim(), color: tf.color } : x));
+      // series-level attributes (keep the anchor start & moves untouched)
+      setTodos((ts) => ts.map((x) => x.id === tf.id ? { ...x, name: tf.name.trim(), ownerId: tf.ownerId || null, repeat: tf.repeat, supply: tf.supply.trim(), color: tf.color } : x));
+      // if the shown date changed, move just this occurrence
+      if (tf.date && tf.date !== tf.origOcc) moveOccurrence(tf.id, tf.origOcc, tf.date);
     } else {
-      setTodos((ts) => [...ts, { id: uid(), name: tf.name.trim(), ownerId: tf.ownerId || null, start: tf.start, repeat: tf.repeat, supply: tf.supply.trim(), color: tf.color, completionLog: [] }]);
+      setTodos((ts) => [...ts, { id: uid(), name: tf.name.trim(), ownerId: tf.ownerId || null, start: tf.date, repeat: tf.repeat, supply: tf.supply.trim(), color: tf.color, completionLog: [] }]);
     }
     setTf(null);
   }
@@ -354,7 +358,7 @@ export default function App() {
       )}
       {tab === "todo" && (
         <TodoView todos={todos} members={members} currentUser={currentUser} isDone={isDone}
-          onComplete={toggleComplete} onEdit={openEditTask} />
+          onComplete={toggleComplete} onEdit={(t) => openEditTask(t, TODAY_STR)} />
       )}
       {tab === "shop" && <ShopView shopping={shopping} setShopping={setShopping} />}
       {tab === "more" && (
@@ -381,7 +385,7 @@ export default function App() {
       {/* day detail sheet */}
       {daySheet && (
         <DaySheet dateStr={daySheet} todos={todos} members={members} isDone={isDone}
-          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { setDaySheet(null); openEditTask(t); }} onMove={moveOccurrence} />
+          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { const ds = daySheet; setDaySheet(null); openEditTask(t, ds); }} onMove={moveOccurrence} />
       )}
 
       {/* task editor */}
@@ -391,7 +395,7 @@ export default function App() {
           onOpenRepeat={() => setRepeatOpen(true)} />
       )}
       {tf && repeatOpen && (
-        <RepeatEditor start={tf.start} repeat={tf.repeat}
+        <RepeatEditor start={tf.date} repeat={tf.repeat}
           onChange={(r) => setTf((f) => ({ ...f, repeat: r }))}
           onBack={() => setRepeatOpen(false)} />
       )}
@@ -908,13 +912,16 @@ function TaskEditor({ tf, setTf, members, onSave, onClose, onDelete, onOpenRepea
           </select>
         </div>
         <div className="field">
-          <label>開始日</label>
-          <input type="date" value={tf.start} onChange={(e) => setTf((f) => ({ ...f, start: e.target.value }))} />
+          <label>日付</label>
+          <input type="date" value={tf.date} onChange={(e) => setTf((f) => ({ ...f, date: e.target.value }))} />
+          {tf.id && tf.repeat?.freq !== "none" && (
+            <div className="list-title" style={{ padding: "6px 0 0" }}>この日だけ移動します（繰り返し全体は変わりません）。</div>
+          )}
         </div>
 
         <div className="nav-row" onClick={onOpenRepeat}>
           <span className="nr-label">繰り返し</span>
-          <span className="nr-value">{repeatSummary(tf.repeat, tf.start)}</span>
+          <span className="nr-value">{repeatSummary(tf.repeat, tf.date)}</span>
           <span className="nr-arrow">›</span>
         </div>
 
