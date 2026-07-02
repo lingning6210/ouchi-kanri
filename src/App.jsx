@@ -677,6 +677,10 @@ function ShopView({ shopping, setShopping }) {
     setShopping((s) => [...s, { id: uid(), name: text.trim(), done: false }]);
     setText("");
   }
+  const toggle = (id) => setShopping((s) => s.map((x) => x.id === id ? { ...x, done: !x.done } : x));
+  const remove = (id) => setShopping((s) => s.filter((x) => x.id !== id));
+  const pending = shopping.filter((i) => !i.done);
+  const done = shopping.filter((i) => i.done);
   return (
     <>
       <div className="pheader">
@@ -696,11 +700,24 @@ function ShopView({ shopping, setShopping }) {
         </div>
         <div style={{ height: 12 }} />
         {shopping.length === 0 && <div className="empty">リストは空です<br /><span style={{ fontSize: 12 }}>家事の完了時に消耗品も自動で追加されます</span></div>}
-        {shopping.map((i) => (
+        {pending.map((i) => (
           <div key={i.id} className="shop-row">
-            <button className={`sc${i.done ? " on" : ""}`} onClick={() => setShopping((s) => s.map((x) => x.id === i.id ? { ...x, done: !x.done } : x))}>✓</button>
-            <span className="sn" style={{ textDecoration: i.done ? "line-through" : "none", opacity: i.done ? 0.5 : 1 }}>{i.name}</span>
-            <button className="del" onClick={() => setShopping((s) => s.filter((x) => x.id !== i.id))}>🗑</button>
+            <button className={`sc${i.done ? " on" : ""}`} onClick={() => toggle(i.id)}>✓</button>
+            <span className="sn">{i.name}</span>
+            <button className="del" onClick={() => remove(i.id)}>🗑</button>
+          </div>
+        ))}
+        {done.length > 0 && (
+          <div className="shop-done-head">
+            <span>購入済み {done.length}</span>
+            <button className="clear-done" onClick={() => setShopping((s) => s.filter((x) => !x.done))}>まとめて消す</button>
+          </div>
+        )}
+        {done.map((i) => (
+          <div key={i.id} className="shop-row done">
+            <button className={`sc${i.done ? " on" : ""}`} onClick={() => toggle(i.id)}>✓</button>
+            <span className="sn" style={{ textDecoration: "line-through", opacity: 0.5 }}>{i.name}</span>
+            <button className="del" onClick={() => remove(i.id)}>🗑</button>
           </div>
         ))}
       </div>

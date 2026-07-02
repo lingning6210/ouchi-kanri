@@ -163,6 +163,9 @@ body {
 .shop-row .sc { width: 24px; height: 24px; border-radius: 8px; border: 2px solid #d9cebf; background: var(--card); cursor: pointer; flex-shrink: 0; display:flex; align-items:center; justify-content:center; color: transparent; }
 .shop-row .sc:hover, .shop-row .sc.on { background: var(--sage); border-color: var(--sage); color:#fff; }
 .shop-row .sn { flex: 1; font-size: 15px; }
+.shop-row.done { opacity: .92; }
+.shop-done-head { display: flex; align-items: center; justify-content: space-between; margin: 18px 12px 8px; padding: 0 2px; font-size: 12px; color: var(--ink3); }
+.shop-done-head .clear-done { background: none; border: none; color: var(--brand); font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 6px; }
 
 /* ─── login ─────────────────────────── */
 .login { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
