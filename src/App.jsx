@@ -87,25 +87,38 @@ export default function App() {
   const [syncErr, setSyncErr] = useState("");
   const [loginJoinCode, setLoginJoinCode] = useState("");
   const suppressSaveRef = useRef(false); // skip cloud-save when the change came from remote
+  const fromRemoteRef = useRef(false);   // the current change came from a remote payload
   const channelRef = useRef(null);
   const payloadRef = useRef(null);
+  const localTsRef = useRef((() => { try { return Number(localStorage.getItem(LS + "_ts")) || 0; } catch { return 0; } })());
+  const firstPersistRef = useRef(true);
 
   // keep localStorage cache + a live snapshot for seeding the cloud
   useEffect(() => {
     if (DEMO) return; // demo is ephemeral: never persist
-    payloadRef.current = { members, todos, shopping, notifyTime, v: 2 };
+    // bump the local timestamp only for genuine local edits (not the initial load, not remote-applied)
+    if (firstPersistRef.current) firstPersistRef.current = false;
+    else if (fromRemoteRef.current) fromRemoteRef.current = false;
+    else localTsRef.current = Date.now();
+    payloadRef.current = { members, todos, shopping, notifyTime, updatedAt: localTsRef.current, v: 3 };
     try {
       localStorage.setItem(LS, JSON.stringify({ currentUser, members, todos, shopping, notifyTime }));
+      localStorage.setItem(LS + "_ts", String(localTsRef.current));
     } catch {}
   }, [currentUser, members, todos, shopping, notifyTime]);
 
+  // apply a remote payload, but never clobber newer local edits
   function applyRemote(payload) {
-    if (!payload || !payload.members) return;
+    if (!payload || !payload.members) return false;
+    if (payload.updatedAt && payload.updatedAt <= localTsRef.current) return false; // local is newer/equal
     suppressSaveRef.current = true;
+    fromRemoteRef.current = true;
+    localTsRef.current = payload.updatedAt || Date.now();
     setMembers(payload.members);
     setTodos(payload.todos || []);
     setShopping(payload.shopping || []);
     if (payload.notifyTime) setNotifyTime(payload.notifyTime);
+    return true;
   }
 
   function persistHouseholdCode(code) {
@@ -130,11 +143,12 @@ export default function App() {
     cloudLoad(householdCode)
       .then((remote) => {
         if (!alive) return;
-        if (remote && remote.members) {
+        const remoteTs = remote?.updatedAt || 0;
+        if (remote && remote.members && remoteTs > localTsRef.current) {
+          // cloud is newer → adopt it
           applyRemote(remote);
         } else {
-          // brand-new household: seed the cloud with what's on this device
-          suppressSaveRef.current = false;
+          // no cloud yet, or our local data is newer → push local up
           cloudSave(householdCode, payloadRef.current)
             .then(() => ch.send({ type: "broadcast", event: "sync", payload: payloadRef.current }))
             .catch((e) => { if (alive) { setSyncState("error"); setSyncErr(e?.message || String(e)); } });
@@ -154,7 +168,7 @@ export default function App() {
   useEffect(() => {
     if (!householdCode) return;
     if (suppressSaveRef.current) { suppressSaveRef.current = false; return; }
-    const payload = { members, todos, shopping, notifyTime, v: 2 };
+    const payload = { members, todos, shopping, notifyTime, updatedAt: localTsRef.current, v: 3 };
     const t = setTimeout(() => {
       setSyncState("syncing");
       cloudSave(householdCode, payload)
@@ -167,12 +181,24 @@ export default function App() {
     return () => clearTimeout(t);
   }, [members, todos, shopping, notifyTime, householdCode]);
 
-  // re-pull when the tab regains focus (covers missed realtime events)
+  // re-pull when the tab regains focus (covers missed realtime events); apply only if newer
   useEffect(() => {
     if (!householdCode) return;
     const onFocus = () => cloudLoad(householdCode).then((r) => r && applyRemote(r)).catch(() => {});
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
+  }, [householdCode]);
+
+  // flush pending local changes immediately when the app is backgrounded/closed
+  useEffect(() => {
+    if (!householdCode) return;
+    const flush = () => {
+      if (payloadRef.current) cloudSave(householdCode, payloadRef.current).catch(() => {});
+    };
+    const onVis = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", onVis); };
   }, [householdCode]);
 
   // auto-join from a shared link: ?join=OUCHI-XXXX-XXXX
