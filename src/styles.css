@@ -241,6 +241,8 @@ body {
 @keyframes up { from { transform: translateY(30px); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
 .sheet-handle { width: 40px; height: 4px; background: #ddd3c6; border-radius: 3px; margin: 6px auto 12px; }
 .sheet h3 { padding: 0 18px 10px; font-size: 16px; }
+.day-add { display: block; width: calc(100% - 24px); margin: 6px 12px 4px; padding: 13px; border: 1.5px dashed #d9cebf; border-radius: var(--radius); background: none; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--brand-ink); cursor: pointer; }
+.day-add:hover { border-color: var(--brand); }
 
 /* demo banner */
 .demo-banner { flex-shrink: 0; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; text-align: center; padding: 6px 12px; letter-spacing: .02em; }

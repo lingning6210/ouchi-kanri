@@ -239,8 +239,9 @@ export default function App() {
   }
 
   // ─── task form ────────────────────────────────────────
-  function openNewTask() {
-    setTf({ id: null, name: "", ownerId: currentUser || "", date: TODAY_STR, origOcc: TODAY_STR, repeat: { freq: "none" }, supply: "", color: me?.color || COLORS[0] });
+  function openNewTask(dateOverride) {
+    const ds = dateOverride || TODAY_STR;
+    setTf({ id: null, name: "", ownerId: currentUser || "", date: ds, origOcc: ds, repeat: { freq: "none" }, supply: "", color: me?.color || COLORS[0] });
   }
   function openEditTask(t, occDate) {
     const oc = occDate || t.start;
@@ -392,7 +393,7 @@ export default function App() {
       <nav className="tabbar">
         <button className={tab === "cal" ? "on" : ""} onClick={() => setTab("cal")}><span className="ti">📅</span>カレンダー</button>
         <button className={tab === "todo" ? "on" : ""} onClick={() => setTab("todo")}><span className="ti">✓</span>ToDo</button>
-        <div className="fab-wrap"><button className="fab" onClick={openNewTask}>＋</button></div>
+        <div className="fab-wrap"><button className="fab" onClick={() => openNewTask()}>＋</button></div>
         <button className={tab === "shop" ? "on" : ""} onClick={() => setTab("shop")}><span className="ti">🛒</span>買い物</button>
         <button className={tab === "more" ? "on" : ""} onClick={() => setTab("more")}><span className="ti">☰</span>その他</button>
       </nav>
@@ -400,7 +401,8 @@ export default function App() {
       {/* day detail sheet */}
       {daySheet && (
         <DaySheet dateStr={daySheet} todos={todos} members={members} isDone={isDone}
-          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { const ds = daySheet; setDaySheet(null); openEditTask(t, ds); }} onMove={moveOccurrence} onSkip={skipOccurrence} />
+          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { const ds = daySheet; setDaySheet(null); openEditTask(t, ds); }} onMove={moveOccurrence} onSkip={skipOccurrence}
+          onAdd={(ds) => { setDaySheet(null); openNewTask(ds); }} />
       )}
 
       {/* task editor */}
@@ -521,7 +523,7 @@ function CalendarView({ calMonth, setCalMonth, todos, onDay, isDone }) {
 // ══════════════════════════════════════════════════════════
 // Day detail sheet
 // ══════════════════════════════════════════════════════════
-function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit, onMove, onSkip }) {
+function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit, onMove, onSkip, onAdd }) {
   const d = parseD(dateStr);
   const list = todos.filter((t) => occursOnTodo(t, d));
   const label = `${d.getMonth() + 1}月${d.getDate()}日（${DAYS_JP[d.getDay()]}）`;
@@ -570,6 +572,7 @@ function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit
             </div>
           );
         })}
+        <button className="day-add" onClick={() => onAdd(dateStr)}>＋ この日にタスクを追加</button>
       </div>
     </div>
   );
