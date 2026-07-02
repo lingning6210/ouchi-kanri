@@ -1067,7 +1067,11 @@ function RepeatEditor({ start, repeat, onChange, onBack }) {
               <div className="list-row">
                 <span className="lr-label">間隔</span>
                 <span className="lr-value">
-                  <input className="lr-num" type="number" min="1" value={r.interval || 1} onChange={(e) => setInterval(e.target.value)} />
+                  <span className="stepper">
+                    <button onClick={() => setInterval((r.interval || 1) - 1)} disabled={(r.interval || 1) <= 1}>−</button>
+                    <span className="stepper-n">{r.interval || 1}</span>
+                    <button onClick={() => setInterval((r.interval || 1) + 1)}>＋</button>
+                  </span>
                   {r.freq === "daily" ? "日ごと" : r.freq === "weekly" ? "週間ごと" : "ヶ月ごと"}
                 </span>
               </div>
