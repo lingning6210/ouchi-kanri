@@ -558,11 +558,9 @@ function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit
                   </div>
                 ) : (
                   <div className="move-actions">
-                    <button className="move-btn" onClick={() => setMoving(t.id)}>
-                      📅 この日をずらす{from ? "（元に戻すには元の日付を選択）" : ""}
-                    </button>
+                    <button className="move-btn" onClick={() => setMoving(t.id)}>📅 この日をずらす</button>
                     {(t.repeat && t.repeat.freq !== "none") && (
-                      <button className="move-btn del" onClick={() => { if (confirm("この日の予定だけ削除します（繰り返し全体は残ります）。よろしいですか？")) onSkip(t.id, dateStr); }}>
+                      <button className="move-btn move-del" onClick={() => { if (confirm("この日の予定だけ削除します（繰り返し全体は残ります）。よろしいですか？")) onSkip(t.id, dateStr); }}>
                         🗑 この日だけ削除
                       </button>
                     )}
@@ -935,7 +933,8 @@ function TaskEditor({ tf, setTf, members, onSave, onClose, onDelete, onOpenRepea
         </div>
         <div className="field">
           <label>日付</label>
-          <input type="date" value={tf.date} onChange={(e) => setTf((f) => ({ ...f, date: e.target.value }))} />
+          <input type="date" value={tf.date} onChange={(e) => setTf((f) => ({ ...f, date: e.target.value }))}
+            style={{ width: "auto", maxWidth: "100%", padding: "10px 13px" }} />
           {tf.id && tf.repeat?.freq !== "none" && (
             <div className="list-title" style={{ padding: "6px 0 0" }}>この日だけ移動します（繰り返し全体は変わりません）。</div>
           )}

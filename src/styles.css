@@ -71,7 +71,7 @@ body {
 .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); background: var(--card); }
 .cal-cell {
   min-height: 78px; border-right: 1px solid var(--sep); border-bottom: 1px solid var(--sep);
-  padding: 4px 3px 4px; cursor: pointer; position: relative; overflow: hidden;
+  padding: 4px 2px 4px; cursor: pointer; position: relative; overflow: hidden;
 }
 .cal-cell:nth-child(7n) { border-right: none; }
 .cal-cell.other { background: #fcfaf6; }
@@ -81,8 +81,8 @@ body {
 .cal-cell.sat .dn { color: var(--sat); }
 .cal-cell.today .dn { background: var(--brand); color: #fff; border-radius: 8px; display: inline-block; min-width: 22px; text-align: center; line-height: 18px; }
 .cal-ev {
-  font-size: 10px; line-height: 1.45; border-radius: 6px; padding: 1px 5px; margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;
+  font-size: 9px; line-height: 1.5; border-radius: 5px; padding: 1px 2px; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; letter-spacing: -.03em;
 }
 .cal-ev.done { text-decoration: line-through; opacity: .5; }
 .cal-more { font-size: 9px; color: var(--ink3); padding-left: 5px; margin-top: 1px; }
@@ -148,9 +148,9 @@ body {
 .chip.moved { background: #eae4f2; color: #7a5aa0; }
 .tcard .del { background: none; border: none; color: #cfc6ba; cursor: pointer; font-size: 18px; padding: 2px 4px; }
 .empty { text-align: center; color: var(--ink3); padding: 52px 20px; line-height: 2; font-size: 14px; }
-.move-actions { display: flex; gap: 14px; flex-wrap: wrap; }
-.move-btn { margin-top: 8px; background: none; border: none; padding: 2px 0; font-family: inherit; font-size: 12px; color: var(--brand-ink); cursor: pointer; text-align: left; }
-.move-btn.del { color: var(--red); }
+.move-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.move-btn { display: inline-flex; align-items: center; gap: 4px; background: var(--bg); border: 1px solid var(--sep); border-radius: 999px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--brand-ink); cursor: pointer; }
+.move-btn.move-del { color: var(--red); border-color: #eac7b6; }
 .move-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink2); flex-wrap: wrap; }
 .move-row input { border: 1.5px solid var(--sep); border-radius: 8px; padding: 6px 8px; font-family: inherit; font-size: 14px; }
 
