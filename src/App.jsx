@@ -266,11 +266,11 @@ export default function App() {
         <div className="login">
           <div className="logo">🏠</div>
           <h1>おうち管理</h1>
-          {members.length === 0 ? (
-            <p>ようこそ！<br />まずは家族を追加しましょう</p>
-          ) : (
-            <p>今日は誰として使いますか？</p>
-          )}
+          {members.length === 0
+            ? (householdCode && syncState === "syncing"
+                ? <p>同期中…<br />少しお待ちください</p>
+                : <p>ようこそ！<br />まずは家族を追加しましょう</p>)
+            : <p>今日は誰として使いますか？</p>}
           <div className="login-grid">
             {members.map((m) => (
               <button key={m.id} className="login-card" onClick={() => setCurrentUser(m.id)}>
@@ -284,15 +284,26 @@ export default function App() {
           </button>
 
           <div className="login-join">
-            <div className="login-or">または、家族から共有された方は</div>
-            {syncState === "error" && <div className="login-join-err">コードが見つからないか、接続できませんでした</div>}
-            <div className="login-join-row">
-              <input value={loginJoinCode} onChange={(e) => setLoginJoinCode(e.target.value)}
-                placeholder="OUCHI-XXXX-XXXX" style={{ textTransform: "uppercase" }}
-                onKeyDown={(e) => { if (e.key === "Enter" && loginJoinCode.trim()) persistHouseholdCode(loginJoinCode.trim().toUpperCase()); }} />
-              <button onClick={() => { const c = loginJoinCode.trim().toUpperCase(); if (c) persistHouseholdCode(c); }}>参加</button>
-            </div>
-            {householdCode && syncState === "syncing" && <div className="login-or">同期中…（{householdCode}）</div>}
+            {householdCode ? (
+              <div className="login-connected">
+                <span>🔗 共有中：<b>{householdCode}</b></span>
+                <span className="login-conn-state" style={syncState === "error" ? { color: "var(--brand-ink)" } : undefined}>
+                  {syncState === "syncing" ? "同期中…" : syncState === "error" ? "接続できません" : "同期済み"}
+                </span>
+                <button className="login-leave" onClick={() => persistHouseholdCode(null)}>共有を解除</button>
+              </div>
+            ) : (
+              <>
+                <div className="login-or">または、家族から共有された方は</div>
+                {syncState === "error" && <div className="login-join-err">コードが見つからないか、接続できませんでした</div>}
+                <div className="login-join-row">
+                  <input value={loginJoinCode} onChange={(e) => setLoginJoinCode(e.target.value)}
+                    placeholder="OUCHI-XXXX-XXXX" style={{ textTransform: "uppercase" }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && loginJoinCode.trim()) persistHouseholdCode(loginJoinCode.trim().toUpperCase()); }} />
+                  <button onClick={() => { const c = loginJoinCode.trim().toUpperCase(); if (c) persistHouseholdCode(c); }}>参加</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
         {memberForm && <MemberEditor mf={memberForm} setMf={setMemberForm} onSave={saveMemberForm} onClose={() => setMemberForm(null)} onDelete={memberForm.id ? () => deleteMember(memberForm.id) : null} />}
