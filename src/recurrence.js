@@ -92,6 +92,23 @@ export function occursOn(start, repeat, target) {
   }
 }
 
+// Effective occurrence for a todo, accounting for single-occurrence moves.
+// todo.moves maps "元の日(YYYY-MM-DD)" -> "移動先(YYYY-MM-DD)".
+export function occursOnTodo(todo, target) {
+  const ds = fmtD(target);
+  const moves = todo.moves || {};
+  for (const to of Object.values(moves)) if (to === ds) return true; // 移動してきた
+  if (moves[ds]) return false; // 別の日へ移動した
+  return occursOn(todo.start, todo.repeat, target);
+}
+
+// If the given date is a move target, return the original date (else null).
+export function movedFrom(todo, dateStr) {
+  const moves = todo.moves || {};
+  for (const [from, to] of Object.entries(moves)) if (to === dateStr) return from;
+  return null;
+}
+
 // human summary shown in repeat editor headline
 export function repeatSummary(repeat, startStr) {
   const r = repeat || { freq: "none" };

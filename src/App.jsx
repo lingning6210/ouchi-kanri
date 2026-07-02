@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import "./styles.css";
 import {
-  DAYS_JP, parseD, fmtD, todayD, occursOn, repeatSummary, repeatShort,
+  DAYS_JP, parseD, fmtD, todayD, occursOn, occursOnTodo, movedFrom, repeatSummary, repeatShort,
   nthOfMonth, getNthWeekdayInMonth,
 } from "./recurrence.js";
 import { supabase, cloudLoad, cloudSave, makeHouseholdCode } from "./cloud.js";
@@ -259,6 +259,21 @@ export default function App() {
     setTf(null);
   }
 
+  // move a single occurrence from one date to another (keeps the recurrence)
+  function moveOccurrence(todoId, fromDateStr, toDateStr) {
+    if (!toDateStr || toDateStr === fromDateStr) return;
+    setTodos((ts) => ts.map((t) => {
+      if (t.id !== todoId) return t;
+      if (!t.repeat || t.repeat.freq === "none") return { ...t, start: toDateStr };
+      const moves = { ...(t.moves || {}) };
+      let originKey = fromDateStr;
+      for (const [orig, dest] of Object.entries(moves)) { if (dest === fromDateStr) { originKey = orig; break; } }
+      if (toDateStr === originKey) delete moves[originKey]; // moved back to original
+      else moves[originKey] = toDateStr;
+      return { ...t, moves };
+    }));
+  }
+
   // ─── login ────────────────────────────────────────────
   if (!currentUser) {
     return (
@@ -366,7 +381,7 @@ export default function App() {
       {/* day detail sheet */}
       {daySheet && (
         <DaySheet dateStr={daySheet} todos={todos} members={members} isDone={isDone}
-          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { setDaySheet(null); openEditTask(t); }} />
+          onClose={() => setDaySheet(null)} onComplete={toggleComplete} onEdit={(t) => { setDaySheet(null); openEditTask(t); }} onMove={moveOccurrence} />
       )}
 
       {/* task editor */}
@@ -439,7 +454,7 @@ function CalendarView({ calMonth, setCalMonth, todos, onDay, isDone }) {
     const ds = fmtD(d);
     const list = [];
     todos.forEach((t) => {
-      if (occursOn(t.start, t.repeat, d)) list.push({ id: t.id, name: t.name, color: t.color, done: isDone(t, ds) });
+      if (occursOnTodo(t, d)) list.push({ id: t.id, name: t.name, color: t.color, done: isDone(t, ds) });
     });
     return list;
   }
@@ -487,10 +502,11 @@ function CalendarView({ calMonth, setCalMonth, todos, onDay, isDone }) {
 // ══════════════════════════════════════════════════════════
 // Day detail sheet
 // ══════════════════════════════════════════════════════════
-function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit }) {
+function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit, onMove }) {
   const d = parseD(dateStr);
-  const list = todos.filter((t) => occursOn(t.start, t.repeat, d));
+  const list = todos.filter((t) => occursOnTodo(t, d));
   const label = `${d.getMonth() + 1}月${d.getDate()}日（${DAYS_JP[d.getDay()]}）`;
+  const [moving, setMoving] = useState(null); // todoId being moved
   return (
     <div className="sheet-ov" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="sheet">
@@ -500,18 +516,32 @@ function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit
         {list.map((t) => {
           const owner = members.find((m) => m.id === t.ownerId);
           const done = isDone(t, dateStr);
+          const from = movedFrom(t, dateStr);
           return (
             <div key={t.id} className="tcard">
               <button className={`ck${done ? " on" : ""}`} onClick={() => onComplete(t.id, dateStr)}>✓</button>
-              <div className="tbody" onClick={() => onEdit(t)}>
-                <div className="tname" style={{ textDecoration: done ? "line-through" : "none", opacity: done ? 0.5 : 1 }}>
+              <div className="tbody">
+                <div className="tname" onClick={() => onEdit(t)} style={{ textDecoration: done ? "line-through" : "none", opacity: done ? 0.5 : 1 }}>
                   <span style={{ color: t.color }}>●</span> {t.isReward && "🎁 "}{t.name}
                 </div>
                 <div className="tmeta">
                   {owner && <span className="chip owner">{owner.emoji} {owner.name}</span>}
                   <span className="chip rpt">🔁 {repeatShort(t.repeat, t.start)}</span>
                   {t.supply && <span className="chip sup">🧴 {t.supply}</span>}
+                  {from && <span className="chip moved">🔀 {fmtMD(from)}から移動</span>}
                 </div>
+                {moving === t.id ? (
+                  <div className="move-row">
+                    <span>移動先：</span>
+                    <input type="date" defaultValue={dateStr}
+                      onChange={(e) => { onMove(t.id, dateStr, e.target.value); setMoving(null); }} />
+                    <button className="asbtn" onClick={() => setMoving(null)}>やめる</button>
+                  </div>
+                ) : (
+                  <button className="move-btn" onClick={() => setMoving(t.id)}>
+                    📅 この日をずらす{from ? "（元に戻すには元の日付を選択）" : ""}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -532,9 +562,9 @@ function TodoView({ todos, members, currentUser, isDone, onComplete, onEdit }) {
       const overdue = [];
       for (let i = 45; i >= 1; i--) {
         const d = new Date(TODAY); d.setDate(d.getDate() - i);
-        if (occursOn(t.start, t.repeat, d) && !isDone(t, fmtD(d))) overdue.push(fmtD(d));
+        if (occursOnTodo(t, d) && !isDone(t, fmtD(d))) overdue.push(fmtD(d));
       }
-      const dueToday = occursOn(t.start, t.repeat, TODAY);
+      const dueToday = occursOnTodo(t, TODAY);
       if (dueToday || overdue.length) res.push({ t, dueToday, overdue, doneToday: isDone(t, TODAY_STR) });
     });
     return res;
@@ -855,6 +885,7 @@ function HelpScreen({ onClose }) {
 // Task editor screen
 // ══════════════════════════════════════════════════════════
 function TaskEditor({ tf, setTf, members, onSave, onClose, onDelete, onOpenRepeat }) {
+  const [confirmDel, setConfirmDel] = useState(false);
   return (
     <div className="screen">
       <div className="pheader">
@@ -901,9 +932,23 @@ function TaskEditor({ tf, setTf, members, onSave, onClose, onDelete, onOpenRepea
         </div>
 
         <div className="btn-row">
-          {onDelete && <button className="btn g" onClick={onDelete}>削除</button>}
+          <button className="btn g" onClick={onClose}>キャンセル</button>
           <button className="btn p" onClick={onSave}>{tf.id ? "保存" : "追加する"}</button>
         </div>
+        {onDelete && (
+          <div className="field" style={{ marginTop: 8 }}>
+            {confirmDel ? (
+              <div className="btn-row" style={{ padding: 0 }}>
+                <button className="btn g" onClick={() => setConfirmDel(false)}>やめる</button>
+                <button className="btn" style={{ background: "var(--brand)", color: "#fff" }} onClick={onDelete}>本当に削除する</button>
+              </div>
+            ) : (
+              <button className="link-btn" style={{ width: "100%", borderColor: "#e3b8ab", color: "var(--brand-ink)" }} onClick={() => setConfirmDel(true)}>
+                🗑 このタスクを削除
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
