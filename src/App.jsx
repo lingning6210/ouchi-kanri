@@ -8,6 +8,10 @@ import { supabase, cloudLoad, cloudSave, makeHouseholdCode } from "./cloud.js";
 import { pushSupported, isPushEnabled, enablePush, disablePush, updatePushTime } from "./push.js";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
+// consumables linked to a task — supports the new array + legacy single `supply` string
+const suppliesOf = (t) => (Array.isArray(t.supplies) ? t.supplies : t.supply ? [t.supply] : []).map((s) => String(s).trim()).filter(Boolean);
+const cleanSupplies = (arr) => (arr || []).map((s) => String(s).trim()).filter(Boolean);
+const supplyLabel = (t) => { const s = suppliesOf(t); return s.length <= 1 ? s[0] : `${s[0]} +${s.length - 1}`; };
 const TODAY = todayD();
 const TODAY_STR = fmtD(TODAY);
 const LS = "ouchi_kanri_v3";
@@ -47,9 +51,9 @@ const DEMO_SEED = {
     { id: "m4", name: "長男", emoji: "🧒", color: "#d99a3f", reward: null },
   ],
   todos: [
-    { id: "t1", name: "お風呂掃除", ownerId: "m1", color: "#c56b4b", start: monthStart, repeat: { freq: "weekly", interval: 1, weekdays: [1, 4] }, supply: "バスクリーナー", completionLog: [{ date: dAgo(3), doerId: "m1", isSub: false }] },
-    { id: "t2", name: "ゴミ捨て", ownerId: "m2", color: "#6e86a6", start: monthStart, repeat: { freq: "weekly", interval: 1, weekdays: [2, 5] }, supply: "ゴミ袋", completionLog: [] },
-    { id: "t3", name: "トイレ掃除", ownerId: "m1", color: "#c56b4b", start: monthStart, repeat: { freq: "monthly", interval: 1, mode: "nth", nth: 1, weekday: 5, date: 3 }, supply: "トイレクリーナー", completionLog: [] },
+    { id: "t1", name: "お風呂掃除", ownerId: "m1", color: "#c56b4b", start: monthStart, repeat: { freq: "weekly", interval: 1, weekdays: [1, 4] }, supplies: ["バスクリーナー", "スポンジ"], completionLog: [{ date: dAgo(3), doerId: "m1", isSub: false }] },
+    { id: "t2", name: "ゴミ捨て", ownerId: "m2", color: "#6e86a6", start: monthStart, repeat: { freq: "weekly", interval: 1, weekdays: [2, 5] }, supplies: ["ゴミ袋"], completionLog: [] },
+    { id: "t3", name: "トイレ掃除", ownerId: "m1", color: "#c56b4b", start: monthStart, repeat: { freq: "monthly", interval: 1, mode: "nth", nth: 1, weekday: 5, date: 3 }, supplies: ["トイレクリーナー", "トイレブラシ", "流せるシート"], completionLog: [] },
     { id: "t4", name: "シーツ交換", ownerId: "m3", color: "#9d6a8e", start: monthStart, repeat: { freq: "monthly", interval: 1, mode: "date", date: 1, nth: 0, weekday: 0 }, supply: "", completionLog: [] },
     { id: "t5", name: "掃除機かけ", ownerId: "m4", color: "#d99a3f", start: dAgo(10), repeat: { freq: "daily", interval: 2 }, supply: "", completionLog: [{ date: dAgo(2), doerId: "m4", isSub: false }] },
   ],
@@ -228,7 +232,8 @@ export default function App() {
       setTodos((ts) => ts.map((x) => x.id === todoId ? { ...x, completionLog: x.completionLog.filter((l) => l.date !== dateStr) } : x));
       return;
     }
-    if (t.supply) setSupplyPop({ todoId, dateStr, supply: t.supply });
+    const sup = suppliesOf(t);
+    if (sup.length) setSupplyPop({ todoId, dateStr, items: sup.map((name) => ({ name, out: false })) });
     else finishComplete(todoId, dateStr);
   }
   function finishComplete(todoId, dateStr) {
@@ -250,7 +255,7 @@ export default function App() {
           const helper = memberById(doerId);
           setTodos((ts) => [...ts, {
             id: uid(), name: owner.reward.message, ownerId: t.ownerId, color: owner.color,
-            start: TODAY_STR, repeat: { freq: "none" }, supply: "", completionLog: [],
+            start: TODAY_STR, repeat: { freq: "none" }, supplies: [], completionLog: [],
             isReward: true, rewardFor: doerId,
           }]);
           setRewardPop({ ownerEmoji: owner.emoji, ownerName: owner.name, helperEmoji: helper?.emoji || "👤", helperName: helper?.name || "？", message: owner.reward.message, count });
@@ -258,30 +263,35 @@ export default function App() {
       }
     }
   }
-  function supplyYes() { const { todoId, dateStr } = supplyPop; setSupplyPop(null); finishComplete(todoId, dateStr); }
-  function supplyNo() {
-    setShopping((s) => [...s, { id: uid(), name: supplyPop.supply, done: false }]);
-    const { todoId, dateStr } = supplyPop; setSupplyPop(null); finishComplete(todoId, dateStr);
+  function toggleSupplyOut(idx) {
+    setSupplyPop((p) => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, out: !it.out } : it) }));
+  }
+  function supplyConfirm() {
+    const { todoId, dateStr, items } = supplyPop;
+    const out = items.filter((it) => it.out).map((it) => it.name);
+    if (out.length) setShopping((s) => [...s, ...out.map((name) => ({ id: uid(), name, done: false }))]);
+    setSupplyPop(null);
+    finishComplete(todoId, dateStr);
   }
 
   // ─── task form ────────────────────────────────────────
   function openNewTask(dateOverride) {
     const ds = dateOverride || TODAY_STR;
-    setTf({ id: null, name: "", ownerId: currentUser || "", date: ds, origOcc: ds, repeat: { freq: "none" }, supply: "", color: me?.color || COLORS[0] });
+    setTf({ id: null, name: "", ownerId: currentUser || "", date: ds, origOcc: ds, repeat: { freq: "none" }, supplies: [], color: me?.color || COLORS[0] });
   }
   function openEditTask(t, occDate) {
     const oc = occDate || t.start;
-    setTf({ id: t.id, name: t.name, ownerId: t.ownerId || "", start: t.start, repeat: t.repeat, supply: t.supply || "", color: t.color || COLORS[0], date: oc, origOcc: oc });
+    setTf({ id: t.id, name: t.name, ownerId: t.ownerId || "", start: t.start, repeat: t.repeat, supplies: suppliesOf(t), color: t.color || COLORS[0], date: oc, origOcc: oc });
   }
   function saveTask() {
     if (!tf.name.trim()) return;
     if (tf.id) {
       // series-level attributes (keep the anchor start & moves untouched)
-      setTodos((ts) => ts.map((x) => x.id === tf.id ? { ...x, name: tf.name.trim(), ownerId: tf.ownerId || null, repeat: tf.repeat, supply: tf.supply.trim(), color: tf.color } : x));
+      setTodos((ts) => ts.map((x) => x.id === tf.id ? { ...x, name: tf.name.trim(), ownerId: tf.ownerId || null, repeat: tf.repeat, supplies: cleanSupplies(tf.supplies), supply: undefined, color: tf.color } : x));
       // if the shown date changed, move just this occurrence
       if (tf.date && tf.date !== tf.origOcc) moveOccurrence(tf.id, tf.origOcc, tf.date);
     } else {
-      setTodos((ts) => [...ts, { id: uid(), name: tf.name.trim(), ownerId: tf.ownerId || null, start: tf.date, repeat: tf.repeat, supply: tf.supply.trim(), color: tf.color, completionLog: [] }]);
+      setTodos((ts) => [...ts, { id: uid(), name: tf.name.trim(), ownerId: tf.ownerId || null, start: tf.date, repeat: tf.repeat, supplies: cleanSupplies(tf.supplies), color: tf.color, completionLog: [] }]);
     }
     setTf(null);
   }
@@ -452,10 +462,18 @@ export default function App() {
           <div className="pop">
             <div className="pe">🧴</div>
             <div className="pt">消耗品の確認</div>
-            <div className="pd">「<strong>{supplyPop.supply}</strong>」はまだ残っていますか？</div>
+            <div className="pd">切れたものをタップ → 買い物リストに追加します</div>
+            <div className="supply-check-list">
+              {supplyPop.items.map((it, i) => (
+                <button key={i} className={`supply-check${it.out ? " out" : ""}`} onClick={() => toggleSupplyOut(i)}>
+                  <span className="sc-box">{it.out ? "🛒" : "✓"}</span>
+                  <span className="sc-name">{it.name}</span>
+                  <span className="sc-state">{it.out ? "切れた" : "まだある"}</span>
+                </button>
+              ))}
+            </div>
             <div className="btn-row">
-              <button className="btn g" onClick={supplyNo}>もうない<br /><small style={{ fontWeight: 400 }}>→買い物リストへ</small></button>
-              <button className="btn p" onClick={supplyYes}>まだある！</button>
+              <button className="btn p" onClick={supplyConfirm}>完了</button>
             </div>
           </div>
         </div>
@@ -574,7 +592,7 @@ function DaySheet({ dateStr, todos, members, isDone, onClose, onComplete, onEdit
                 <div className="tmeta">
                   {owner && <span className="chip owner">{owner.emoji} {owner.name}</span>}
                   <span className="chip rpt">🔁 {repeatShort(t.repeat, t.start)}</span>
-                  {t.supply && <span className="chip sup">🧴 {t.supply}</span>}
+                  {suppliesOf(t).length > 0 && <span className="chip sup">🧴 {supplyLabel(t)}</span>}
                   {from && <span className="chip moved">🔀 {fmtMD(from)}から移動</span>}
                 </div>
                 {moving === t.id ? (
@@ -639,7 +657,7 @@ function TodoView({ todos, members, currentUser, isDone, onComplete, onEdit }) {
           <div className="tmeta">
             {owner && <span className="chip owner">{owner.emoji} {owner.name}</span>}
             <span className="chip rpt">🔁 {repeatShort(t.repeat, t.start)}</span>
-            {t.supply && <span className="chip sup">🧴 {t.supply}</span>}
+            {suppliesOf(t).length > 0 && <span className="chip sup">🧴 {supplyLabel(t)}</span>}
             {overdue.length > 0 && <span className="chip due">⚠️ 未完了{overdue.length}回</span>}
           </div>
         </div>
@@ -993,8 +1011,15 @@ function TaskEditor({ tf, setTf, members, onSave, onClose, onDelete, onOpenRepea
         </div>
 
         <div className="field">
-          <label>消耗品（完了時に残量を確認）</label>
-          <input placeholder="例：バスクリーナー（任意）" value={tf.supply} onChange={(e) => setTf((f) => ({ ...f, supply: e.target.value }))} />
+          <label>消耗品（完了時に残量を確認・複数可）</label>
+          {(tf.supplies || []).map((s, i) => (
+            <div key={i} className="supply-input-row">
+              <input placeholder="例：バスクリーナー" value={s}
+                onChange={(e) => setTf((f) => ({ ...f, supplies: f.supplies.map((v, j) => j === i ? e.target.value : v) }))} />
+              <button type="button" className="supply-del" onClick={() => setTf((f) => ({ ...f, supplies: f.supplies.filter((_, j) => j !== i) }))}>✕</button>
+            </div>
+          ))}
+          <button type="button" className="supply-add" onClick={() => setTf((f) => ({ ...f, supplies: [...(f.supplies || []), ""] }))}>＋ 消耗品を追加</button>
         </div>
         <div className="field">
           <label>カレンダーの色</label>

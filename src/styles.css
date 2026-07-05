@@ -167,6 +167,21 @@ body {
 .shop-done-head { display: flex; align-items: center; justify-content: space-between; margin: 18px 12px 8px; padding: 0 2px; font-size: 12px; color: var(--ink3); }
 .shop-done-head .clear-done { background: none; border: none; color: var(--brand); font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 6px; }
 
+/* ─── consumables (task editor + completion popup) ─── */
+.supply-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.supply-input-row input { flex: 1; }
+.supply-input-row .supply-del { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--sep); background: var(--card); color: var(--ink3); font-size: 14px; cursor: pointer; }
+.supply-add { background: var(--brand-soft); border: none; color: var(--brand-ink); font-family: inherit; font-size: 14px; font-weight: 700; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+.supply-check-list { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 16px; text-align: left; }
+.supply-check { display: flex; align-items: center; gap: 10px; width: 100%; background: var(--card); border: 1.5px solid var(--sep); border-radius: 12px; padding: 11px 13px; font-family: inherit; cursor: pointer; }
+.supply-check .sc-box { width: 26px; height: 26px; border-radius: 8px; background: var(--sage-soft); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.supply-check .sc-name { flex: 1; font-size: 15px; color: var(--ink); text-align: left; }
+.supply-check .sc-state { font-size: 12px; font-weight: 700; color: var(--sage); flex-shrink: 0; }
+.supply-check.out { border-color: var(--brand); background: var(--brand-soft); }
+.supply-check.out .sc-box { background: var(--brand); }
+.supply-check.out .sc-name { text-decoration: line-through; color: var(--ink2); }
+.supply-check.out .sc-state { color: var(--brand-ink); }
+
 /* ─── login ─────────────────────────── */
 .login { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
 .login .logo { font-size: 52px; }
