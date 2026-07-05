@@ -233,7 +233,7 @@ export default function App() {
       return;
     }
     const sup = suppliesOf(t);
-    if (sup.length) setSupplyPop({ todoId, dateStr, items: sup.map((name) => ({ name, out: false })) });
+    if (sup.length) setSupplyPop({ todoId, dateStr, queue: sup, out: [], total: sup.length });
     else finishComplete(todoId, dateStr);
   }
   function finishComplete(todoId, dateStr) {
@@ -263,15 +263,18 @@ export default function App() {
       }
     }
   }
-  function toggleSupplyOut(idx) {
-    setSupplyPop((p) => ({ ...p, items: p.items.map((it, i) => i === idx ? { ...it, out: !it.out } : it) }));
-  }
-  function supplyConfirm() {
-    const { todoId, dateStr, items } = supplyPop;
-    const out = items.filter((it) => it.out).map((it) => it.name);
-    if (out.length) setShopping((s) => [...s, ...out.map((name) => ({ id: uid(), name, done: false }))]);
-    setSupplyPop(null);
-    finishComplete(todoId, dateStr);
+  // answer one supply at a time; "out" ones are queued for the shopping list
+  function supplyAnswer(isOut) {
+    const p = supplyPop;
+    const [cur, ...rest] = p.queue;
+    const out = isOut ? [...p.out, cur] : p.out;
+    if (rest.length === 0) {
+      if (out.length) setShopping((s) => [...s, ...out.map((name) => ({ id: uid(), name, done: false }))]);
+      setSupplyPop(null);
+      finishComplete(p.todoId, p.dateStr);
+    } else {
+      setSupplyPop({ ...p, queue: rest, out });
+    }
   }
 
   // ─── task form ────────────────────────────────────────
@@ -461,19 +464,11 @@ export default function App() {
         <div className="pop-ov">
           <div className="pop">
             <div className="pe">🧴</div>
-            <div className="pt">消耗品の確認</div>
-            <div className="pd">切れたものをタップ → 買い物リストに追加します</div>
-            <div className="supply-check-list">
-              {supplyPop.items.map((it, i) => (
-                <button key={i} className={`supply-check${it.out ? " out" : ""}`} onClick={() => toggleSupplyOut(i)}>
-                  <span className="sc-box">{it.out ? "🛒" : "✓"}</span>
-                  <span className="sc-name">{it.name}</span>
-                  <span className="sc-state">{it.out ? "切れた" : "まだある"}</span>
-                </button>
-              ))}
-            </div>
+            <div className="pt">消耗品の確認{supplyPop.total > 1 ? `（${supplyPop.total - supplyPop.queue.length + 1}/${supplyPop.total}）` : ""}</div>
+            <div className="pd">「<strong>{supplyPop.queue[0]}</strong>」はまだ残っていますか？</div>
             <div className="btn-row">
-              <button className="btn p" onClick={supplyConfirm}>完了</button>
+              <button className="btn g" onClick={() => supplyAnswer(true)}>もうない<br /><small style={{ fontWeight: 400 }}>→買い物リストへ</small></button>
+              <button className="btn p" onClick={() => supplyAnswer(false)}>まだある！</button>
             </div>
           </div>
         </div>
